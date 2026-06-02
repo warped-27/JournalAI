@@ -9,7 +9,8 @@ import {
   useColorScheme, 
   Dimensions, 
   Platform, 
-  Modal 
+  Modal,
+  TouchableOpacity
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Palette } from '../../constants/Colors';
@@ -22,6 +23,7 @@ interface NoteItem {
   id: string;
   title: string;
   excerpt: string;
+  content: string; // Testo completo originale
   date: string;
   tags: string[];
   pastelAccent: {
@@ -30,6 +32,7 @@ interface NoteItem {
   };
   isAnalyzing?: boolean;
   syncStatus: 'none' | 'syncing' | 'synced' | 'local_only';
+  isFavorite?: boolean;
 }
 
 // Note simulate memorizzate nello storage cifrato fittizio dell'utente.
@@ -37,7 +40,8 @@ const INITIAL_NOTES: NoteItem[] = [
   {
     id: '1',
     title: 'Riflessioni BYO-Cloud',
-    excerpt: 'Analisi sui vantaggi del modello BYO-Cloud. L\'assenza di server proprietari elimina i costi di manutenzione e garantisce la sovranità dei dati all\'utente...',
+    excerpt: 'Analisi sui vantaggi del modello BYO-Cloud...',
+    content: 'Analisi sui vantaggi del modello BYO-Cloud. L\'assenza di server proprietari elimina i costi di manutenzione e garantisce la sovranità dei dati all\'utente. I file vengono cifrati sul dispositivo e caricati direttamente sullo storage privato dell\'utente.',
     date: 'Oggi, 08:30',
     tags: ['Architettura', 'Sintesi-AI'],
     pastelAccent: {
@@ -45,11 +49,13 @@ const INITIAL_NOTES: NoteItem[] = [
       dark: '#1b2e24',  // Salvia scuro
     },
     syncStatus: 'synced',
+    isFavorite: true,
   },
   {
     id: '2',
     title: 'Vocale: Idee Startup',
-    excerpt: 'Trascrizione crittografata locale. Discussione sulle funzionalità principali: crittografia client-side AES-GCM e derivazione con PBKDF2...',
+    excerpt: 'Trascrizione crittografata locale della discussione...',
+    content: 'Trascrizione crittografata locale. Discussione sulle funzionalità principali di JournalAI: crittografia client-side AES-GCM e derivazione con PBKDF2 per garantire la massima riservatezza delle registrazioni.',
     date: 'Ieri, 18:15',
     tags: ['Vocale', 'Analisi-AI'],
     pastelAccent: {
@@ -57,11 +63,13 @@ const INITIAL_NOTES: NoteItem[] = [
       dark: '#162b3d',  // Carta da zucchero scuro
     },
     syncStatus: 'synced',
+    isFavorite: false,
   },
   {
     id: '3',
     title: 'Studio Modelli Locali',
-    excerpt: 'Valutazione delle prestazioni di Ollama e modelli offline (Phi-4, Llama 3) su dispositivi mobili. Latenza ottimale per la generazione di tag...',
+    excerpt: 'Valutazione delle prestazioni di Ollama offline...',
+    content: 'Valutazione delle prestazioni di Ollama e modelli offline (Phi-4, Llama 3) su dispositivi mobili. Analisi della latenza ottimale per la generazione di tag e riassunti automatici senza alcuna connessione internet.',
     date: '28 Mag',
     tags: ['Modelli', 'Ricerca'],
     pastelAccent: {
@@ -69,11 +77,13 @@ const INITIAL_NOTES: NoteItem[] = [
       dark: '#2d1b33',  // Lilla scuro
     },
     syncStatus: 'synced',
+    isFavorite: true,
   },
   {
     id: '4',
     title: 'Integrazione WebDAV',
-    excerpt: 'Sincronizzazione incrementale dei file JSON cifrati. Algoritmo di risoluzione dei conflitti basato su timestamp locali e verifica della firma...',
+    excerpt: 'Sincronizzazione incrementale dei file JSON cifrati...',
+    content: 'Sincronizzazione incrementale dei file JSON cifrati. Algoritmo di risoluzione dei conflitti basato su timestamp locali e verifica della firma digitale per evitare perdite di dati in modalità Last Write Wins.',
     date: '24 Mag',
     tags: ['Storage', 'Sync'],
     pastelAccent: {
@@ -81,10 +91,12 @@ const INITIAL_NOTES: NoteItem[] = [
       dark: '#3d2516',  // Pesca scuro
     },
     syncStatus: 'synced',
+    isFavorite: false,
   }
 ];
 
-const FILTER_TABS = ['Tutti', 'Cifrati', 'AI Insights', 'Preferiti'];
+// Filtro 'Cifrati' rimosso in quanto ridondante (tutto è cifrato)
+const FILTER_TABS = ['Tutti', 'AI Insights', 'Preferiti'];
 
 export default function DashboardScreen() {
   const systemColorScheme = useColorScheme();
@@ -108,6 +120,16 @@ export default function DashboardScreen() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [newNoteTitle, setNewNoteTitle] = useState('');
   const [newNoteContent, setNewNoteContent] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const [micFeedback, setMicFeedback] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<any>(null);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+
+  // Stati per la visualizzazione/modifica nota esistente
+  const [isViewModalVisible, setIsViewModalVisible] = useState(false);
+  const [selectedNote, setSelectedNote] = useState<NoteItem | null>(null);
+  const [editNoteTitle, setEditNoteTitle] = useState('');
+  const [editNoteContent, setEditNoteContent] = useState('');
 
   // Carica la Master Password all'avvio e ad ogni focus
   useEffect(() => {
@@ -123,20 +145,19 @@ export default function DashboardScreen() {
 
           const processed = await Promise.all(
             rawNotes.map(async (note) => {
-              // Se la nota è in fase di elaborazione IA in background o in sincro iniziale, manteniamo lo stato corrente
               if (note.isAnalyzing) {
                 return note;
               }
               // Cifratura + Decifratura live per testare il motore
               const encryptedTitle = await CryptoEngine.encryptNote(note.title, key);
-              const encryptedExcerpt = await CryptoEngine.encryptNote(note.excerpt, key);
+              const encryptedContent = await CryptoEngine.encryptNote(note.content, key);
               const decryptedTitle = await CryptoEngine.decryptNote(encryptedTitle.ciphertext, encryptedTitle.iv, key);
-              const decryptedExcerpt = await CryptoEngine.decryptNote(encryptedExcerpt.ciphertext, encryptedExcerpt.iv, key);
+              const decryptedContent = await CryptoEngine.decryptNote(encryptedContent.ciphertext, encryptedContent.iv, key);
               
               return {
                 ...note,
                 title: decryptedTitle,
-                excerpt: decryptedExcerpt,
+                content: decryptedContent,
               };
             })
           );
@@ -182,6 +203,7 @@ export default function DashboardScreen() {
       ...note,
       title: maskText(note.title),
       excerpt: maskText(note.excerpt),
+      content: maskText(note.content),
     }));
   };
 
@@ -204,17 +226,20 @@ export default function DashboardScreen() {
     const newNote: NoteItem = {
       id: noteId,
       title: newNoteTitle,
-      excerpt: newNoteContent,
+      excerpt: newNoteContent.substring(0, 50) + '...', // Anteprima temporanea
+      content: newNoteContent,
       date: dateStr,
       tags: [],
       pastelAccent: { light: '#f4f4f5', dark: '#27272a' },
       isAnalyzing: true,
       syncStatus: 'none',
+      isFavorite: false,
     };
 
     setIsModalVisible(false);
     setNewNoteTitle('');
     setNewNoteContent('');
+    setIsRecording(false);
 
     // Salva immediatamente la nota locale nello stato (Optimistic UI)
     setRawNotes((prev) => [newNote, ...prev]);
@@ -260,20 +285,20 @@ export default function DashboardScreen() {
         if (derivedKey) {
           // Cifra localmente prima dell'upload
           const encTitle = await CryptoEngine.encryptNote(newNote.title, derivedKey);
-          const encExcerpt = await CryptoEngine.encryptNote(finalExcerpt, derivedKey);
+          const encContent = await CryptoEngine.encryptNote(newNote.content, derivedKey);
           encryptedPayload = JSON.stringify({
             titleCipher: encTitle.ciphertext,
             titleIv: encTitle.iv,
-            excerptCipher: encExcerpt.ciphertext,
-            excerptIv: encExcerpt.iv,
+            contentCipher: encContent.ciphertext,
+            contentIv: encContent.iv,
             date: dateStr,
             tags: finalTags,
-            lastUpdated: Date.now(), // Usato per la risoluzione conflitti Last Write Wins
+            lastUpdated: Date.now(),
           });
         } else {
           encryptedPayload = JSON.stringify({
             title: newNote.title,
-            excerpt: finalExcerpt,
+            content: newNote.content,
             date: dateStr,
             tags: finalTags,
             lastUpdated: Date.now(),
@@ -309,11 +334,240 @@ export default function DashboardScreen() {
     })();
   };
 
+  // Salvataggio della nota modificata con re-trigger dell'IA in background
+  const handleSaveEdit = async () => {
+    if (!selectedNote || !editNoteTitle.trim() || !editNoteContent.trim()) return;
+
+    const noteId = selectedNote.id;
+    setIsViewModalVisible(false);
+
+    // Aggiorna lo stato localmente all'istante
+    setRawNotes((prev) =>
+      prev.map((n) =>
+        n.id === noteId
+          ? {
+              ...n,
+              title: editNoteTitle,
+              content: editNoteContent,
+              isAnalyzing: true,
+              syncStatus: 'none',
+            }
+          : n
+      )
+    );
+
+    // Esegui elaborazione asincrona in background
+    (async () => {
+      let finalExcerpt = editNoteContent;
+      let finalTags = ['Nota Locale'];
+      let finalColor = { light: '#e8f5e9', dark: '#1b2e24' };
+
+      try {
+        const aiConfig = await SecureStorage.getAIConfig();
+        const insights = await AIEngine.generateNoteInsights(editNoteContent, aiConfig);
+        finalExcerpt = insights.summary;
+        finalTags = insights.tags;
+        finalColor = insights.color;
+      } catch (err) {
+        console.warn('[AIEngine] Errore in background durante la modifica:', err);
+      }
+
+      setRawNotes((prev) =>
+        prev.map((n) =>
+          n.id === noteId
+            ? {
+                ...n,
+                excerpt: finalExcerpt,
+                tags: finalTags,
+                pastelAccent: finalColor,
+                isAnalyzing: false,
+                syncStatus: 'syncing',
+              }
+            : n
+        )
+      );
+
+      // Caricamento cloud del payload modificato
+      try {
+        const cloudConf = await SecureStorage.getCloudConfig();
+        let encryptedPayload = '';
+
+        if (derivedKey) {
+          const encTitle = await CryptoEngine.encryptNote(editNoteTitle, derivedKey);
+          const encContent = await CryptoEngine.encryptNote(editNoteContent, derivedKey);
+          encryptedPayload = JSON.stringify({
+            titleCipher: encTitle.ciphertext,
+            titleIv: encTitle.iv,
+            contentCipher: encContent.ciphertext,
+            contentIv: encContent.iv,
+            date: selectedNote.date,
+            tags: finalTags,
+            lastUpdated: Date.now(),
+          });
+        } else {
+          encryptedPayload = JSON.stringify({
+            title: editNoteTitle,
+            content: editNoteContent,
+            date: selectedNote.date,
+            tags: finalTags,
+            lastUpdated: Date.now(),
+          });
+        }
+
+        const uploadSuccess = await CloudSyncEngine.uploadEncryptedPayload(noteId, encryptedPayload, cloudConf);
+
+        setRawNotes((prev) =>
+          prev.map((n) =>
+            n.id === noteId
+              ? {
+                  ...n,
+                  syncStatus: uploadSuccess ? 'synced' : 'local_only',
+                }
+              : n
+          )
+        );
+      } catch (syncErr) {
+        console.warn('[Sync] Errore caricamento modifica:', syncErr);
+        setRawNotes((prev) =>
+          prev.map((n) =>
+            n.id === noteId
+              ? {
+                  ...n,
+                  syncStatus: 'local_only',
+                }
+              : n
+          )
+        );
+      }
+    })();
+
+    setSelectedNote(null);
+  };
+
+  const handleDeleteNote = (noteId: string) => {
+    setRawNotes((prev) => prev.filter((n) => n.id !== noteId));
+    setIsViewModalVisible(false);
+    setSelectedNote(null);
+  };
+
+  const toggleFavorite = (noteId: string) => {
+    setRawNotes((prev) =>
+      prev.map((n) => (n.id === noteId ? { ...n, isFavorite: !n.isFavorite } : n))
+    );
+    // Aggiorna anche lo stato visualizzato locale del modal
+    if (selectedNote && selectedNote.id === noteId) {
+      setSelectedNote(prev => prev ? { ...prev, isFavorite: !prev.isFavorite } : null);
+    }
+  };
+
+  // Avvia la registrazione audio nativa nel browser
+  const startRecording = async () => {
+    try {
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert("La registrazione audio non è supportata su questo browser o piattaforma.");
+        return;
+      }
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (typeof MediaRecorder !== 'undefined') {
+        const recorder = new MediaRecorder(stream);
+        const chunks: Blob[] = [];
+
+        recorder.ondataavailable = (event) => {
+          if (event.data && event.data.size > 0) {
+            chunks.push(event.data);
+          }
+        };
+
+        recorder.onstop = async () => {
+          // Ferma tutte le tracce audio per rilasciare il microfono
+          stream.getTracks().forEach(track => track.stop());
+
+          const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+          setIsTranscribing(true);
+
+          try {
+            const aiConfig = await SecureStorage.getAIConfig();
+            const text = await AIEngine.processAudio(audioBlob, aiConfig);
+            setNewNoteContent((prev) => prev ? `${prev} ${text}` : text);
+          } catch (err: any) {
+            alert(`Errore di trascrizione: ${err.message || err}`);
+          } finally {
+            setIsTranscribing(false);
+          }
+        };
+
+        recorder.start();
+        setMediaRecorder(recorder);
+        setIsRecording(true);
+      } else {
+        alert("MediaRecorder non supportato in questo browser.");
+      }
+    } catch (err) {
+      console.error("Errore avvio registrazione:", err);
+      alert("Impossibile accedere al microfono. Verifica i permessi.");
+    }
+  };
+
+  // Ferma la registrazione audio
+  const stopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+      setIsRecording(false);
+    }
+  };
+
+  // Gestione click del microfono con feedback pastello
+  const handleMicClick = async () => {
+    setMicFeedback(true);
+    setTimeout(() => setMicFeedback(false), 400);
+
+    if (isRecording) {
+      stopRecording();
+    } else {
+      await startRecording();
+    }
+  };
+
+  // Logica di Filtraggio delle Note in base al tab selezionato e alla barra di ricerca
+  const filteredNotes = processedNotes.filter((note) => {
+    // 1. Filtro per Tab attiva
+    if (selectedFilter === 'AI Insights') {
+      // Mostra solo le note analizzate con successo dall'IA (che possiedono tag e non sono in corso di analisi)
+      if (note.isAnalyzing || note.tags.length === 0 || note.tags.includes('Locale')) {
+        return false;
+      }
+    } else if (selectedFilter === 'Preferiti') {
+      // Mostra solo le note contrassegnate come preferite
+      if (!note.isFavorite) return false;
+    }
+
+    // 2. Filtro di ricerca testuale (titolo o riassunto)
+    if (searchQuery.trim() !== '') {
+      const query = searchQuery.toLowerCase();
+      const matchTitle = note.title.toLowerCase().includes(query);
+      const matchContent = (note.content || '').toLowerCase().includes(query);
+      return matchTitle || matchContent;
+    }
+
+    return true;
+  });
+
   const renderCard = ({ item }: { item: NoteItem }) => {
     const cardAccent = isDark ? item.pastelAccent.dark : item.pastelAccent.light;
     
     return (
-      <Pressable 
+      <TouchableOpacity 
+        onPress={() => {
+          if (isUnlocked) {
+            setSelectedNote(item);
+            setEditNoteTitle(item.title);
+            setEditNoteContent(item.content || item.excerpt);
+            setIsViewModalVisible(true);
+          }
+        }}
+        activeOpacity={0.7}
+        disabled={!isUnlocked}
         style={[
           styles.card, 
           { 
@@ -323,7 +577,6 @@ export default function DashboardScreen() {
             opacity: isUnlocked ? 1 : 0.75,
           }
         ]}
-        disabled={!isUnlocked}
       >
         {/* Card Header: Stato e Data */}
         <View style={styles.cardHeader}>
@@ -409,7 +662,7 @@ export default function DashboardScreen() {
             </View>
           )}
         </View>
-      </Pressable>
+      </TouchableOpacity>
     );
   };
 
@@ -475,8 +728,8 @@ export default function DashboardScreen() {
                 style={[
                   styles.tabButton,
                   isActive && { 
-                    backgroundColor: currentTheme.surface,
-                    borderColor: currentTheme.border,
+                    backgroundColor: isDark ? '#1a2730' : '#e0f2fe',
+                    borderColor: currentTheme.textPrimary,
                   },
                   !isUnlocked && { opacity: 0.5 }
                 ]}
@@ -500,7 +753,7 @@ export default function DashboardScreen() {
 
       {/* Grid of Notes */}
       <FlatList
-        data={processedNotes}
+        data={filteredNotes}
         renderItem={renderCard}
         keyExtractor={(item) => item.id}
         numColumns={2}
@@ -509,7 +762,7 @@ export default function DashboardScreen() {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={{ color: currentTheme.textSecondary }}>Nessuna nota trovata nel quaderno.</Text>
+            <Text style={{ color: currentTheme.textSecondary }}>Nessuna nota trovata con i filtri selezionati.</Text>
           </View>
         }
       />
@@ -552,19 +805,55 @@ export default function DashboardScreen() {
               ]}
             />
 
-            <TextInput
-              placeholder="Scrivi qui i tuoi pensieri..."
-              placeholderTextColor={currentTheme.textSecondary}
-              value={newNoteContent}
-              onChangeText={setNewNoteContent}
-              multiline={true}
-              numberOfLines={6}
-              style={[
-                styles.modalInput, 
-                styles.modalInputArea,
-                { color: currentTheme.textPrimary, borderColor: currentTheme.border, backgroundColor: currentTheme.background }
-              ]}
-            />
+            <Text style={[styles.inputLabel, { color: currentTheme.textSecondary, marginBottom: 6 }]}>Contenuto</Text>
+
+            {isTranscribing ? (
+              <View style={[styles.transcribingContainer, { borderColor: currentTheme.border, backgroundColor: currentTheme.background }]}>
+                <Text style={{ fontSize: 22, marginBottom: 8 }}>🔄</Text>
+                <Text style={[styles.transcribingText, { color: currentTheme.textPrimary }]}>
+                  🔄 IA sta ascoltando...
+                </Text>
+                <Text style={[styles.transcribingSubtext, { color: currentTheme.textSecondary }]}>
+                  Trascrizione audio in corso tramite API client-side
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.micInputContainer}>
+                <TextInput
+                  placeholder="Scrivi qui i tuoi pensieri..."
+                  placeholderTextColor={currentTheme.textSecondary}
+                  value={newNoteContent}
+                  onChangeText={setNewNoteContent}
+                  multiline={true}
+                  numberOfLines={6}
+                  style={[
+                    styles.modalInput, 
+                    styles.modalInputArea,
+                    { flex: 1, marginBottom: 0, color: currentTheme.textPrimary, borderColor: currentTheme.border, backgroundColor: currentTheme.background }
+                  ]}
+                />
+                <TouchableOpacity 
+                  activeOpacity={0.6}
+                  onPress={handleMicClick}
+                  style={[
+                    styles.micSidebarBtn, 
+                    { 
+                      backgroundColor: isRecording 
+                        ? (isDark ? '#4c1d1d' : '#fee2e2') 
+                        : (micFeedback ? (isDark ? '#222c26' : '#e8f5e9') : (isDark ? '#1a2730' : '#e0f2fe')),
+                      borderColor: isRecording ? '#ef4444' : currentTheme.border,
+                    }
+                  ]}
+                >
+                  <Text style={{ fontSize: 20 }}>
+                    {isRecording ? '🔴' : '🎙️'}
+                  </Text>
+                  {isRecording && (
+                    <Text style={[styles.micSidebarLabel, { color: '#ef4444' }]}>Rec</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
 
             <View style={styles.modalActions}>
               <Pressable 
@@ -583,6 +872,109 @@ export default function DashboardScreen() {
             </View>
           </View>
         </View>
+      </Modal>
+
+      {/* Modal di Dettaglio, Modifica ed Eliminazione Nota - A Tutto Schermo */}
+      <Modal
+        visible={isViewModalVisible}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={() => setIsViewModalVisible(false)}
+      >
+        <SafeAreaView style={[styles.fullScreenContainer, { backgroundColor: currentTheme.background }]} edges={['top', 'bottom']}>
+          {/* Header Barra Superiore */}
+          <View style={[styles.fsHeader, { borderColor: currentTheme.border }]}>
+            <TouchableOpacity 
+              onPress={() => setIsViewModalVisible(false)}
+              style={styles.fsHeaderBack}
+            >
+              <Text style={[styles.fsHeaderBackText, { color: currentTheme.textPrimary }]}>← Journal</Text>
+            </TouchableOpacity>
+            
+            <View style={styles.fsHeaderActions}>
+              {selectedNote && (
+                <TouchableOpacity 
+                  onPress={() => toggleFavorite(selectedNote.id)}
+                  style={[styles.fsFavToggle, { borderColor: currentTheme.border, backgroundColor: currentTheme.surface }]}
+                >
+                  <Text style={{ fontSize: 18, color: selectedNote.isFavorite ? '#fbbf24' : currentTheme.textSecondary }}>
+                    {selectedNote.isFavorite ? '★' : '☆'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+              
+              <TouchableOpacity 
+                onPress={handleSaveEdit}
+                style={[styles.fsSaveBtn, { backgroundColor: currentTheme.textPrimary }]}
+              >
+                <Text style={[styles.fsSaveBtnText, { color: isDark ? '#000' : '#fff' }]}>Salva</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Form del Contenuto */}
+          <View style={styles.fsContent}>
+            {/* Input Titolo */}
+            <TextInput
+              placeholder="Titolo della nota..."
+              placeholderTextColor={currentTheme.textSecondary}
+              value={editNoteTitle}
+              onChangeText={setEditNoteTitle}
+              style={[
+                styles.fsTitleInput, 
+                { color: currentTheme.textPrimary }
+              ]}
+            />
+            
+            {/* Riga Data & Badge */}
+            <View style={styles.fsMetaRow}>
+              <Text style={[styles.fsDateText, { color: currentTheme.textSecondary }]}>
+                {selectedNote?.date}
+              </Text>
+              {selectedNote?.tags && selectedNote.tags.length > 0 && (
+                <View style={styles.fsTagsRow}>
+                  {selectedNote.tags.map((tag, idx) => (
+                    <View key={idx} style={[styles.tagBadge, { backgroundColor: isDark ? selectedNote.pastelAccent.dark : selectedNote.pastelAccent.light }]}>
+                      <Text style={[styles.tagText, { color: isDark ? '#a1a1aa' : '#52525b' }]}>✦ {tag}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+
+            {/* Input Contenuto */}
+            <TextInput
+              placeholder="Scrivi qui i tuoi pensieri..."
+              placeholderTextColor={currentTheme.textSecondary}
+              value={editNoteContent}
+              onChangeText={setEditNoteContent}
+              multiline={true}
+              textAlignVertical="top"
+              style={[
+                styles.fsContentInput, 
+                { color: currentTheme.textPrimary }
+              ]}
+            />
+          </View>
+
+          {/* Footer con Pulsante di Eliminazione */}
+          {selectedNote && (
+            <View style={[styles.fsFooter, { borderColor: currentTheme.border }]}>
+              <TouchableOpacity 
+                onPress={() => handleDeleteNote(selectedNote.id)}
+                style={[
+                  styles.fsDeleteBtn, 
+                  { 
+                    backgroundColor: isDark ? '#2e1919' : '#fef2f2',
+                    borderColor: isDark ? '#5c2222' : '#fca5a5',
+                  }
+                ]}
+              >
+                <Text style={styles.fsDeleteBtnText}>Elimina Nota 🗑️</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </SafeAreaView>
       </Modal>
 
     </SafeAreaView>
@@ -810,6 +1202,42 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 16,
   },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  favToggle: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  inputHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  micBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  micText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
   modalInput: {
     borderWidth: 1,
     borderRadius: 10,
@@ -848,6 +1276,141 @@ const styles = StyleSheet.create({
   },
   modalBtnSaveText: {
     fontSize: 13,
+    fontWeight: '600',
+  },
+  modalBtnDelete: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBtnDeleteText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  micInputContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'stretch',
+  },
+  micSidebarBtn: {
+    width: 44,
+    borderWidth: 1,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 120,
+  },
+  micSidebarLabel: {
+    fontSize: 8,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  transcribingContainer: {
+    height: 120,
+    borderWidth: 1,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  transcribingText: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  transcribingSubtext: {
+    fontSize: 11,
+    textAlign: 'center',
+  },
+  fullScreenContainer: {
+    flex: 1,
+  },
+  fsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  fsHeaderBack: {
+    paddingVertical: 6,
+  },
+  fsHeaderBackText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  fsHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  fsFavToggle: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fsSaveBtn: {
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fsSaveBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  fsContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+  },
+  fsTitleInput: {
+    fontSize: 22,
+    fontWeight: '700',
+    padding: 0,
+    marginBottom: 10,
+  },
+  fsMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  fsDateText: {
+    fontSize: 12,
+  },
+  fsTagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  fsContentInput: {
+    flex: 1,
+    fontSize: 16,
+    lineHeight: 24,
+    padding: 0,
+  },
+  fsFooter: {
+    padding: 20,
+    borderTopWidth: 1,
+  },
+  fsDeleteBtn: {
+    height: 46,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fsDeleteBtnText: {
+    color: '#ef4444',
+    fontSize: 14,
     fontWeight: '600',
   },
 });

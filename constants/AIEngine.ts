@@ -158,5 +158,103 @@ Nota da analizzare:
       console.warn('[AIEngine] Errore chiamata API IA, uso del fallback:', error);
       return FALLBACK_INSIGHTS;
     }
+  },
+
+  async processAudio(audioBlob: Blob, aiConfig: AIConfig | null): Promise<string> {
+    if (!aiConfig || aiConfig.provider === 'none') {
+      throw new Error('Nessun provider IA configurato per l\'elaborazione vocale.');
+    }
+
+    if (aiConfig.provider === 'ollama') {
+      throw new Error('Elaborazione vocale non ancora supportata per i modelli locali. Usa l\'inserimento testuale.');
+    }
+
+    try {
+      if (aiConfig.provider === 'gemini') {
+        if (!aiConfig.apiKey) throw new Error('API Key Gemini mancante.');
+
+        const base64Data = await blobToBase64(audioBlob);
+        const mimeType = audioBlob.type || 'audio/webm';
+        
+        const prompt = `Analizza l'audio fornito e restituisci la trascrizione testuale accurata in italiano in formato JSON con la seguente struttura:
+{
+  "transcription": "testo completo dell'audio trascritto verbatim"
+}`;
+
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${aiConfig.apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [
+                  { text: prompt },
+                  {
+                    inlineData: {
+                      mimeType: mimeType,
+                      data: base64Data
+                    }
+                  }
+                ]
+              }],
+              generationConfig: {
+                responseMimeType: 'application/json'
+              }
+            })
+          }
+        );
+
+        if (!response.ok) throw new Error(`Status HTTP Gemini Audio: ${response.status}`);
+        const data = await response.json();
+        const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!candidateText) throw new Error('Risposta audio vuota da Gemini.');
+
+        const parsed = parseLLMResponse(candidateText);
+        return parsed.transcription || '';
+      }
+
+      if (aiConfig.provider === 'openai') {
+        if (!aiConfig.apiKey) throw new Error('API Key OpenAI mancante.');
+
+        const formData = new FormData();
+        formData.append('file', audioBlob, 'audio.webm');
+        formData.append('model', 'whisper-1');
+
+        const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${aiConfig.apiKey}`
+          },
+          body: formData
+        });
+
+        if (!response.ok) throw new Error(`Status HTTP OpenAI Whisper: ${response.status}`);
+        const data = await response.json();
+        return data.text || '';
+      }
+
+      throw new Error(`Provider ${aiConfig.provider} non supportato per l'elaborazione vocale.`);
+    } catch (error: any) {
+      console.error('[AIEngine] Errore elaborazione audio:', error);
+      throw error;
+    }
   }
 };
+
+// Convertitore helper Blob a Base64
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        const base64Data = reader.result.split(',')[1];
+        resolve(base64Data);
+      } else {
+        reject(new Error('Conversione Base64 fallita.'));
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
