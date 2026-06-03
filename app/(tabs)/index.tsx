@@ -596,11 +596,6 @@ export default function DashboardScreen() {
     handleRAGSearch(tagName);
   };
 
-  // Reset risposta RAG quando cambia il filtro
-  useEffect(() => {
-    setRagResponse(null);
-  }, [selectedFilter]);
-
   // Funzione per cancellare il testo inserito
   const handleClearSearch = () => {
     if (selectedFilter === 'Secondo Cervello') {
@@ -799,6 +794,7 @@ export default function DashboardScreen() {
                 setRagQuery(text);
                 if (text.trim() === '') {
                   setRagResponse(null);
+                  setIsRAGLoading(false);
                 }
               } else {
                 setSearchQuery(text);
