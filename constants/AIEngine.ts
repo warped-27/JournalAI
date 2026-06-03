@@ -12,6 +12,12 @@ export interface AIInsights {
 export interface RAGNote {
   title: string;
   content: string;
+  attachments?: {
+    id: string;
+    type: 'link';
+    uri: string;
+    title?: string;
+  }[];
 }
 
 // Colori pastello predefiniti in base ai tag o come fallback
@@ -252,7 +258,19 @@ Nota da analizzare:
     }
 
     const context = notes
-      .map((note) => `Titolo: ${note.title}\nContenuto: ${note.content}`)
+      .map((note) => {
+        let noteText = `Titolo: ${note.title}\nContenuto: ${note.content}`;
+        if (note.attachments && note.attachments.length > 0) {
+          const linksText = note.attachments
+            .filter(att => att.type === 'link')
+            .map(att => ` - [${att.title || 'Link'}] (${att.uri})`)
+            .join('\n');
+          if (linksText) {
+            noteText += `\nLink associati:\n${linksText}`;
+          }
+        }
+        return noteText;
+      })
       .join('\n\n---\n\n');
 
     const systemInstruction = "Sei il Secondo Cervello dell'utente. Rispondi alla domanda usando SOLO il contesto fornito, estrapolato dai suoi appunti (es. dettagli su immobili, esami, progetti tecnici). Se l'informazione non è nel contesto, dillo chiaramente.";

@@ -12,7 +12,8 @@ import {
   Modal,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator
+  ActivityIndicator,
+  Linking
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Palette } from '../../constants/Colors';
@@ -20,6 +21,13 @@ import { SecureStorage, CloudConfig } from '../../constants/SecureStorage';
 import { CryptoEngine } from '../../constants/CryptoEngine';
 import { AIEngine } from '../../constants/AIEngine';
 import { CloudSyncEngine } from '../../constants/CloudSyncEngine';
+
+export interface Attachment {
+  id: string;
+  type: 'link';
+  uri: string;
+  title?: string;
+}
 
 interface NoteItem {
   id: string;
@@ -35,6 +43,9 @@ interface NoteItem {
   isAnalyzing?: boolean;
   syncStatus: 'none' | 'syncing' | 'synced' | 'local_only';
   isFavorite?: boolean;
+  attachments?: Attachment[];
+  attachmentsCipher?: string;
+  attachmentsIv?: string;
 }
 
 // Note simulate memorizzate nello storage cifrato fittizio dell'utente.
@@ -136,6 +147,16 @@ export default function DashboardScreen() {
   const [editNoteTitle, setEditNoteTitle] = useState('');
   const [editNoteContent, setEditNoteContent] = useState('');
 
+  // Stati allegati per nuova nota
+  const [newNoteAttachments, setNewNoteAttachments] = useState<Attachment[]>([]);
+  const [newLinkTitle, setNewLinkTitle] = useState('');
+  const [newLinkUrl, setNewLinkUrl] = useState('');
+
+  // Stati allegati per nota in modifica
+  const [editNoteAttachments, setEditNoteAttachments] = useState<Attachment[]>([]);
+  const [editLinkTitle, setEditLinkTitle] = useState('');
+  const [editLinkUrl, setEditLinkUrl] = useState('');
+
   // Carica la Master Password all'avvio e ad ogni focus
   useEffect(() => {
     async function checkKeyAndDecrypt() {
@@ -148,7 +169,7 @@ export default function DashboardScreen() {
           setDerivedKey(key);
           setIsUnlocked(true);
 
-          const processed = await Promise.all(
+           const processed = await Promise.all(
             rawNotes.map(async (note) => {
               if (note.isAnalyzing) {
                 return note;
@@ -159,10 +180,22 @@ export default function DashboardScreen() {
               const decryptedTitle = await CryptoEngine.decryptNote(encryptedTitle.ciphertext, encryptedTitle.iv, key);
               const decryptedContent = await CryptoEngine.decryptNote(encryptedContent.ciphertext, encryptedContent.iv, key);
               
+              // Decifra allegati se presenti
+              let decryptedAttachments = note.attachments || [];
+              if (note.attachmentsCipher && note.attachmentsIv) {
+                try {
+                  const decAttachmentsText = await CryptoEngine.decryptNote(note.attachmentsCipher, note.attachmentsIv, key);
+                  decryptedAttachments = JSON.parse(decAttachmentsText);
+                } catch (e) {
+                  console.error('[CryptoEngine] Decifratura allegati fallita:', e);
+                }
+              }
+
               return {
                 ...note,
                 title: decryptedTitle,
                 content: decryptedContent,
+                attachments: decryptedAttachments,
               };
             })
           );
@@ -239,11 +272,15 @@ export default function DashboardScreen() {
       isAnalyzing: true,
       syncStatus: 'none',
       isFavorite: false,
+      attachments: newNoteAttachments,
     };
 
     setIsModalVisible(false);
     setNewNoteTitle('');
     setNewNoteContent('');
+    setNewNoteAttachments([]);
+    setNewLinkTitle('');
+    setNewLinkUrl('');
     setIsRecording(false);
 
     // Salva immediatamente la nota locale nello stato (Optimistic UI)
@@ -291,11 +328,19 @@ export default function DashboardScreen() {
           // Cifra localmente prima dell'upload
           const encTitle = await CryptoEngine.encryptNote(newNote.title, derivedKey);
           const encContent = await CryptoEngine.encryptNote(newNote.content, derivedKey);
+          
+          let encAttachments = null;
+          if (newNote.attachments && newNote.attachments.length > 0) {
+            encAttachments = await CryptoEngine.encryptNote(JSON.stringify(newNote.attachments), derivedKey);
+          }
+
           encryptedPayload = JSON.stringify({
             titleCipher: encTitle.ciphertext,
             titleIv: encTitle.iv,
             contentCipher: encContent.ciphertext,
             contentIv: encContent.iv,
+            attachmentsCipher: encAttachments ? encAttachments.ciphertext : undefined,
+            attachmentsIv: encAttachments ? encAttachments.iv : undefined,
             date: dateStr,
             tags: finalTags,
             lastUpdated: Date.now(),
@@ -304,6 +349,7 @@ export default function DashboardScreen() {
           encryptedPayload = JSON.stringify({
             title: newNote.title,
             content: newNote.content,
+            attachments: newNote.attachments,
             date: dateStr,
             tags: finalTags,
             lastUpdated: Date.now(),
@@ -354,6 +400,7 @@ export default function DashboardScreen() {
               ...n,
               title: editNoteTitle,
               content: editNoteContent,
+              attachments: editNoteAttachments,
               isAnalyzing: true,
               syncStatus: 'none',
             }
@@ -400,11 +447,19 @@ export default function DashboardScreen() {
         if (derivedKey) {
           const encTitle = await CryptoEngine.encryptNote(editNoteTitle, derivedKey);
           const encContent = await CryptoEngine.encryptNote(editNoteContent, derivedKey);
+          
+          let encAttachments = null;
+          if (editNoteAttachments.length > 0) {
+            encAttachments = await CryptoEngine.encryptNote(JSON.stringify(editNoteAttachments), derivedKey);
+          }
+
           encryptedPayload = JSON.stringify({
             titleCipher: encTitle.ciphertext,
             titleIv: encTitle.iv,
             contentCipher: encContent.ciphertext,
             contentIv: encContent.iv,
+            attachmentsCipher: encAttachments ? encAttachments.ciphertext : undefined,
+            attachmentsIv: encAttachments ? encAttachments.iv : undefined,
             date: selectedNote.date,
             tags: finalTags,
             lastUpdated: Date.now(),
@@ -413,6 +468,7 @@ export default function DashboardScreen() {
           encryptedPayload = JSON.stringify({
             title: editNoteTitle,
             content: editNoteContent,
+            attachments: editNoteAttachments,
             date: selectedNote.date,
             tags: finalTags,
             lastUpdated: Date.now(),
@@ -607,6 +663,56 @@ export default function DashboardScreen() {
     }
   };
 
+  // Metodi per la gestione degli allegati (Link Esterni)
+  const addLinkToNewNote = () => {
+    if (!newLinkUrl.trim()) return;
+    let cleanUrl = newLinkUrl.trim();
+    if (!/^https?:\/\//i.test(cleanUrl)) {
+      cleanUrl = 'https://' + cleanUrl;
+    }
+    const newAtt: Attachment = {
+      id: Date.now().toString(),
+      type: 'link',
+      uri: cleanUrl,
+      title: newLinkTitle.trim() || undefined
+    };
+    setNewNoteAttachments(prev => [...prev, newAtt]);
+    setNewLinkTitle('');
+    setNewLinkUrl('');
+  };
+
+  const removeLinkFromNewNote = (id: string) => {
+    setNewNoteAttachments(prev => prev.filter(att => att.id !== id));
+  };
+
+  const addLinkToEditNote = () => {
+    if (!editLinkUrl.trim()) return;
+    let cleanUrl = editLinkUrl.trim();
+    if (!/^https?:\/\//i.test(cleanUrl)) {
+      cleanUrl = 'https://' + cleanUrl;
+    }
+    const newAtt: Attachment = {
+      id: Date.now().toString(),
+      type: 'link',
+      uri: cleanUrl,
+      title: editLinkTitle.trim() || undefined
+    };
+    setEditNoteAttachments(prev => [...prev, newAtt]);
+    setEditLinkTitle('');
+    setEditLinkUrl('');
+  };
+
+  const removeLinkFromEditNote = (id: string) => {
+    setEditNoteAttachments(prev => prev.filter(att => att.id !== id));
+  };
+
+  const handleOpenLink = (uri: string) => {
+    Linking.openURL(uri).catch(err => {
+      console.error('[Linking] Errore apertura URL:', err);
+      alert('Impossibile aprire il link. Formato non valido.');
+    });
+  };
+
   // Logica di Filtraggio delle Note in base al tab selezionato e alla barra di ricerca
   const filteredNotes = processedNotes.filter((note) => {
     // 1. Filtro per Tab attiva
@@ -642,6 +748,9 @@ export default function DashboardScreen() {
             setSelectedNote(item);
             setEditNoteTitle(item.title);
             setEditNoteContent(item.content || item.excerpt);
+            setEditNoteAttachments(item.attachments || []);
+            setEditLinkTitle('');
+            setEditLinkUrl('');
             setIsViewModalVisible(true);
           }
         }}
@@ -685,6 +794,24 @@ export default function DashboardScreen() {
         >
           {item.excerpt}
         </Text>
+
+        {/* Card Attachments */}
+        {isUnlocked && item.attachments && item.attachments.length > 0 && (
+          <View style={styles.cardAttachmentsRow}>
+            {item.attachments.map((att) => (
+              <TouchableOpacity 
+                key={att.id} 
+                onPress={() => handleOpenLink(att.uri)}
+                activeOpacity={0.7}
+                style={[styles.cardAttachmentChip, { backgroundColor: isDark ? '#1e293b' : '#e0f2fe' }]}
+              >
+                <Text style={[styles.cardAttachmentChipText, { color: isDark ? '#cbd5e1' : '#0f766e' }]} numberOfLines={1}>
+                  🔗 {att.title || att.uri}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
 
         {/* Card Footer: AI Tags & Sync Status */}
         <View style={styles.cardFooter}>
@@ -1045,6 +1172,57 @@ export default function DashboardScreen() {
               </View>
             )}
 
+            {/* Sezione Allegati Link in Creazione */}
+            <View style={[styles.modalLinkSection, { borderColor: currentTheme.border }]}>
+              <Text style={[styles.inputLabel, { color: currentTheme.textSecondary, marginBottom: 6 }]}>
+                Allegati (Link Esterni)
+              </Text>
+              
+              {newNoteAttachments.length > 0 && (
+                <View style={styles.modalAttachmentsContainer}>
+                  {newNoteAttachments.map((att) => (
+                    <View key={att.id} style={[styles.modalAttachmentChip, { backgroundColor: isDark ? '#1f2937' : '#f3f4f6' }]}>
+                      <Text style={[styles.modalAttachmentChipText, { color: currentTheme.textPrimary }]} numberOfLines={1}>
+                        🔗 {att.title || att.uri}
+                      </Text>
+                      <TouchableOpacity onPress={() => removeLinkFromNewNote(att.id)}>
+                        <Text style={{ color: '#ef4444', fontWeight: '700', paddingHorizontal: 4 }}>×</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              <View style={styles.addLinkFormRow}>
+                <TextInput
+                  placeholder="Titolo..."
+                  placeholderTextColor={currentTheme.textSecondary}
+                  value={newLinkTitle}
+                  onChangeText={setNewLinkTitle}
+                  style={[
+                    styles.linkInput,
+                    { flex: 1, color: currentTheme.textPrimary, borderColor: currentTheme.border, backgroundColor: currentTheme.background }
+                  ]}
+                />
+                <TextInput
+                  placeholder="https://..."
+                  placeholderTextColor={currentTheme.textSecondary}
+                  value={newLinkUrl}
+                  onChangeText={setNewLinkUrl}
+                  style={[
+                    styles.linkInput,
+                    { flex: 2, color: currentTheme.textPrimary, borderColor: currentTheme.border, backgroundColor: currentTheme.background }
+                  ]}
+                />
+                <TouchableOpacity 
+                  onPress={addLinkToNewNote}
+                  style={[styles.addLinkMiniBtn, { backgroundColor: currentTheme.textPrimary }]}
+                >
+                  <Text style={{ color: isDark ? '#000' : '#fff', fontWeight: '700' }}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             <View style={styles.modalActions}>
               <Pressable 
                 onPress={() => setIsModalVisible(false)}
@@ -1103,7 +1281,7 @@ export default function DashboardScreen() {
           </View>
 
           {/* Form del Contenuto */}
-          <View style={styles.fsContent}>
+          <ScrollView style={styles.fsContent} showsVerticalScrollIndicator={false}>
             {/* Input Titolo */}
             <TextInput
               placeholder="Titolo della nota..."
@@ -1142,10 +1320,68 @@ export default function DashboardScreen() {
               textAlignVertical="top"
               style={[
                 styles.fsContentInput, 
-                { color: currentTheme.textPrimary }
+                { color: currentTheme.textPrimary, minHeight: 180 }
               ]}
             />
-          </View>
+
+            {/* Sezione Allegati Link in Modifica */}
+            <View style={[styles.fsAttachmentsSection, { borderColor: currentTheme.border }]}>
+              <Text style={[styles.fsAttachmentsTitle, { color: currentTheme.textSecondary }]}>
+                Allegati (Link Esterni)
+              </Text>
+
+              {editNoteAttachments.length > 0 && (
+                <View style={styles.fsAttachmentsRow}>
+                  {editNoteAttachments.map((att) => (
+                    <View key={att.id} style={[styles.fsAttachmentChip, { backgroundColor: isDark ? '#1f2937' : '#f3f4f6' }]}>
+                      <TouchableOpacity 
+                        onPress={() => handleOpenLink(att.uri)}
+                        activeOpacity={0.7}
+                        style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
+                      >
+                        <Text style={[styles.fsAttachmentChipText, { color: currentTheme.textPrimary }]} numberOfLines={1}>
+                          🔗 {att.title || att.uri}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity onPress={() => removeLinkFromEditNote(att.id)}>
+                        <Text style={{ color: '#ef4444', fontWeight: '700', marginLeft: 8 }}>×</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* Form Aggiunta Link in Modifica */}
+              <View style={styles.fsAddLinkFormRow}>
+                <TextInput
+                  placeholder="Titolo link..."
+                  placeholderTextColor={currentTheme.textSecondary}
+                  value={editLinkTitle}
+                  onChangeText={setEditLinkTitle}
+                  style={[
+                    styles.fsLinkInput,
+                    { flex: 1, color: currentTheme.textPrimary, borderColor: currentTheme.border, backgroundColor: currentTheme.background }
+                  ]}
+                />
+                <TextInput
+                  placeholder="https://..."
+                  placeholderTextColor={currentTheme.textSecondary}
+                  value={editLinkUrl}
+                  onChangeText={setEditLinkUrl}
+                  style={[
+                    styles.fsLinkInput,
+                    { flex: 2, color: currentTheme.textPrimary, borderColor: currentTheme.border, backgroundColor: currentTheme.background }
+                  ]}
+                />
+                <TouchableOpacity 
+                  onPress={addLinkToEditNote}
+                  style={[styles.fsAddLinkBtn, { backgroundColor: currentTheme.textPrimary }]}
+                >
+                  <Text style={{ color: isDark ? '#000' : '#fff', fontWeight: '700' }}>+</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
 
           {/* Footer con Pulsante di Eliminazione */}
           {selectedNote && (
@@ -1698,6 +1934,116 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  cardAttachmentsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginTop: 6,
+    marginBottom: 8,
+  },
+  cardAttachmentChip: {
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+    maxWidth: '100%',
+  },
+  cardAttachmentChipText: {
+    fontSize: 9,
+    fontWeight: '600',
+  },
+  modalLinkSection: {
+    marginTop: 14,
+    borderTopWidth: 1,
+    paddingTop: 12,
+  },
+  modalAttachmentsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 10,
+  },
+  modalAttachmentChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  modalAttachmentChipText: {
+    fontSize: 11,
+    fontWeight: '500',
+    maxWidth: 120,
+  },
+  addLinkFormRow: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+  },
+  linkInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    height: 34,
+    paddingHorizontal: 8,
+    fontSize: 12,
+  },
+  addLinkMiniBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fsAttachmentsSection: {
+    marginTop: 24,
+    borderTopWidth: 1,
+    paddingTop: 16,
+    paddingBottom: 20,
+  },
+  fsAttachmentsTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 10,
+  },
+  fsAttachmentsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 14,
+  },
+  fsAttachmentChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    maxWidth: '100%',
+  },
+  fsAttachmentChipText: {
+    fontSize: 12,
+    fontWeight: '500',
+    maxWidth: 200,
+  },
+  fsAddLinkFormRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  fsLinkInput: {
+    borderWidth: 1,
+    borderRadius: 8,
+    height: 38,
+    paddingHorizontal: 10,
+    fontSize: 13,
+  },
+  fsAddLinkBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
