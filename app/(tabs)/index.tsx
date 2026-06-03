@@ -13,14 +13,14 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Linking
+  Linking,
+  Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Palette } from '../../constants/Colors';
 import { SecureStorage, CloudConfig } from '../../constants/SecureStorage';
 import { CryptoEngine } from '../../constants/CryptoEngine';
 import { AIEngine } from '../../constants/AIEngine';
-import { CloudSyncEngine } from '../../constants/CloudSyncEngine';
 
 export interface Attachment {
   id: string;
@@ -161,6 +161,83 @@ export default function DashboardScreen() {
   const [isNewTitleLoading, setIsNewTitleLoading] = useState(false);
   const [isEditTitleLoading, setIsEditTitleLoading] = useState(false);
 
+  // Google Drive Boot Flow States
+  const [isCloudBooted, setIsCloudBooted] = useState(false);
+  const [driveFileId, setDriveFileId] = useState<string | null>(null);
+  const [drivePassword, setDrivePassword] = useState('');
+  const [driveUnlockState, setDriveUnlockState] = useState<'idle' | 'request_unlock' | 'create_password'>('idle');
+  const [encryptedCloudNotes, setEncryptedCloudNotes] = useState<any>(null);
+  const [driveUnlockError, setDriveUnlockError] = useState<string | null>(null);
+
+  const isGoogleAuthenticated = !!(cloudConfig?.provider === 'google_drive' && cloudConfig?.accessToken);
+
+  useEffect(() => {
+    if (isGoogleAuthenticated) {
+      setIsCloudBooted(false);
+    } else {
+      setIsCloudBooted(true);
+    }
+  }, [isGoogleAuthenticated]);
+
+  useEffect(() => {
+    console.log("[BOOT CLOUD] Controllo requisiti: ", { Auth: isGoogleAuthenticated, Token: !!cloudConfig?.accessToken, Booted: isCloudBooted });
+    
+    if (!isGoogleAuthenticated || !cloudConfig?.accessToken || isCloudBooted) return;
+
+    console.log("[BOOT CLOUD] Requisiti soddisfatti. Avvio connessione...");
+    const abortController = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.warn("[BOOT CLOUD] Timeout di 8 secondi superato, forzatura interruzione.");
+      abortController.abort();
+    }, 8000);
+
+    async function checkDriveFile() {
+      try {
+        const response = await fetch(
+          `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent("name='notes.json' and trashed=false")}`,
+          {
+            headers: { 'Authorization': `Bearer ${cloudConfig?.accessToken}` },
+            signal: abortController.signal
+          }
+        );
+        if (!response.ok) { throw new Error('Errore HTTP ' + response.status); }
+        const data = await response.json();
+        const files = data.files || [];
+
+        if (files.length > 0) {
+          const fileId = files[0].id;
+          setDriveFileId(fileId);
+          const fileRes = await fetch(
+            `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+            {
+              headers: { 'Authorization': `Bearer ${cloudConfig?.accessToken}` },
+              signal: abortController.signal
+            }
+          );
+          if (!fileRes.ok) { throw new Error('Errore HTTP ' + fileRes.status); }
+          const fileData = await fileRes.json();
+          setEncryptedCloudNotes(fileData);
+          setDriveUnlockState('request_unlock');
+        } else {
+          setDriveUnlockState('create_password');
+        }
+      } catch (error: any) {
+        if (error.name === 'AbortError') {
+          console.error('CRITICAL: Connessione a Google Drive interrotta per Timeout.');
+        } else {
+          console.error('CRITICAL: Errore durante il boot di Google Drive:', error);
+        }
+      } finally {
+        clearTimeout(timeoutId);
+        setIsCloudBooted(true);
+        console.log("[BOOT CLOUD] Boot concluso, isCloudBooted impostato a true.");
+      }
+    }
+    checkDriveFile();
+
+    return () => { clearTimeout(timeoutId); abortController.abort(); };
+  }, [isGoogleAuthenticated, cloudConfig?.accessToken, isCloudBooted]);
+
   // Carica la Master Password all'avvio e ad ogni focus
   useEffect(() => {
     async function checkKeyAndDecrypt() {
@@ -257,9 +334,122 @@ export default function DashboardScreen() {
     return 'Cloud';
   };
 
+  const uploadToDrive = async (updatedNotes?: NoteItem[]): Promise<boolean> => {
+    if (!isCloudBooted) return false;
+    if (!isGoogleAuthenticated || !cloudConfig || !derivedKey) return false;
+
+    try {
+      const notesToUpload = updatedNotes || rawNotes;
+      const serializedNotes = JSON.stringify(notesToUpload);
+      const encrypted = await CryptoEngine.encryptNote(serializedNotes, derivedKey);
+      
+      const payload = JSON.stringify({
+        notesCipher: encrypted.ciphertext,
+        notesIv: encrypted.iv,
+        lastUpdated: Date.now()
+      });
+
+      // 2. Bivio POST vs PATCH
+      if (driveFileId) {
+        const response = await fetch(
+          `https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,
+          {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${cloudConfig.accessToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: payload
+          }
+        );
+        if (!response.ok) throw new Error(`Patch notes.json error: ${response.status}`);
+      } else {
+        // 1. Gestione Cartella (eseguita solo in fase di creazione del file)
+        let folderId = '';
+        const folderSearchRes = await fetch(
+          `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent("mimeType='application/vnd.google-apps.folder' and name='JournalAI' and trashed=false")}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${cloudConfig.accessToken}`,
+            },
+          }
+        );
+        if (!folderSearchRes.ok) throw new Error(`Search folder error: ${folderSearchRes.status}`);
+        const folderSearchData = await folderSearchRes.json();
+        const folders = folderSearchData.files || [];
+
+        if (folders.length > 0) {
+          folderId = folders[0].id;
+        } else {
+          const createFolderRes = await fetch(
+            'https://www.googleapis.com/drive/v3/files',
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${cloudConfig.accessToken}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                name: 'JournalAI',
+                mimeType: 'application/vnd.google-apps.folder',
+              }),
+            }
+          );
+          if (!createFolderRes.ok) throw new Error(`Create folder error: ${createFolderRes.status}`);
+          const createFolderData = await createFolderRes.json();
+          folderId = createFolderData.id;
+        }
+
+        const fileMetadata = {
+          name: 'notes.json',
+          mimeType: 'application/json',
+          parents: [folderId],
+        };
+        const boundary = 'foo_bar_boundary';
+        const delimiter = `\r\n--${boundary}\r\n`;
+        const closeDelimiter = `\r\n--${boundary}--`;
+
+        const multipartRequestBody =
+          delimiter +
+          'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+          JSON.stringify(fileMetadata) +
+          delimiter +
+          'Content-Type: application/json\r\n\r\n' +
+          payload +
+          closeDelimiter;
+
+        const response = await fetch(
+          'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${cloudConfig.accessToken}`,
+              'Content-Type': `multipart/related; boundary=${boundary}`,
+            },
+            body: multipartRequestBody,
+          }
+        );
+        if (!response.ok) throw new Error(`Create notes.json error: ${response.status}`);
+        const data = await response.json();
+        if (data.id) {
+          setDriveFileId(data.id);
+        }
+      }
+      return true;
+    } catch (err) {
+      console.warn('[Google Drive Sync] Errore salvataggio notes.json:', err);
+      return false;
+    }
+  };
+
   // Creazione della nota cifrata con trigger IA in background e Sync (Optimistic UI)
   const handleCreateNote = async () => {
-    if (!newNoteTitle.trim() || !newNoteContent.trim()) return;
+    console.log('--- DEBUG STATO ---', { Auth: isGoogleAuthenticated, TokenPresente: !!cloudConfig?.accessToken, CloudBooted: isCloudBooted, OggettoConfig: cloudConfig });
+    if (isGoogleAuthenticated && !isCloudBooted) { console.warn('Cloud non ancora pronto'); return; }
+    if (!newNoteTitle.trim() || !newNoteContent.trim()) {
+      Alert.alert('Attenzione', 'Inserisci un titolo e del contenuto o un link per salvare la nota.');
+      return;
+    }
 
     const noteId = Date.now().toString();
     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -288,7 +478,11 @@ export default function DashboardScreen() {
     setIsRecording(false);
 
     // Salva immediatamente la nota locale nello stato (Optimistic UI)
-    setRawNotes((prev) => [newNote, ...prev]);
+    setRawNotes((prev) => {
+      const next = [newNote, ...prev];
+      uploadToDrive(next);
+      return next;
+    });
 
     // Esegui in background elaborazione IA + Sincronizzazione Cloud
     (async () => {
@@ -307,9 +501,10 @@ export default function DashboardScreen() {
         console.warn('[AIEngine] Errore in background:', err);
       }
 
-      // Aggiorna lo stato visivo della nota rimuovendo il loading IA e impostando lo stato a 'syncing'
-      setRawNotes((prev) =>
-        prev.map((n) =>
+      // Aggiorna lo stato visivo della nota rimuovendo il loading IA e impostando lo stato a 'synced'
+      let nextNotesList: NoteItem[] = [];
+      setRawNotes((prev) => {
+        nextNotesList = prev.map((n) =>
           n.id === noteId
             ? {
                 ...n,
@@ -317,70 +512,21 @@ export default function DashboardScreen() {
                 tags: finalTags,
                 pastelAccent: finalColor,
                 isAnalyzing: false,
-                syncStatus: 'syncing',
+                syncStatus: 'synced' as const,
               }
             : n
-        )
-      );
-
-      // Passaggio 2: Cifratura Zero-Knowledge ed invio al Cloud
-      try {
-        const cloudConf = await SecureStorage.getCloudConfig();
-        
-        let encryptedPayload = '';
-        if (derivedKey) {
-          // Cifra localmente prima dell'upload
-          const encTitle = await CryptoEngine.encryptNote(newNote.title, derivedKey);
-          const encContent = await CryptoEngine.encryptNote(newNote.content, derivedKey);
-          
-          let encAttachments = null;
-          if (newNote.attachments && newNote.attachments.length > 0) {
-            encAttachments = await CryptoEngine.encryptNote(JSON.stringify(newNote.attachments), derivedKey);
-          }
-
-          encryptedPayload = JSON.stringify({
-            titleCipher: encTitle.ciphertext,
-            titleIv: encTitle.iv,
-            contentCipher: encContent.ciphertext,
-            contentIv: encContent.iv,
-            attachmentsCipher: encAttachments ? encAttachments.ciphertext : undefined,
-            attachmentsIv: encAttachments ? encAttachments.iv : undefined,
-            date: dateStr,
-            tags: finalTags,
-            lastUpdated: Date.now(),
-          });
-        } else {
-          encryptedPayload = JSON.stringify({
-            title: newNote.title,
-            content: newNote.content,
-            attachments: newNote.attachments,
-            date: dateStr,
-            tags: finalTags,
-            lastUpdated: Date.now(),
-          });
-        }
-
-        const uploadSuccess = await CloudSyncEngine.uploadEncryptedPayload(noteId, encryptedPayload, cloudConf);
-
-        // Aggiorna lo stato di sincronizzazione finale della nota
-        setRawNotes((prev) =>
-          prev.map((n) =>
-            n.id === noteId
-              ? {
-                  ...n,
-                  syncStatus: uploadSuccess ? 'synced' : 'local_only',
-                }
-              : n
-          )
         );
-      } catch (syncErr) {
-        console.warn('[Sync] Errore caricamento:', syncErr);
+        return nextNotesList;
+      });
+
+      const uploadSuccess = await uploadToDrive(nextNotesList);
+      if (!uploadSuccess) {
         setRawNotes((prev) =>
           prev.map((n) =>
             n.id === noteId
               ? {
                   ...n,
-                  syncStatus: 'local_only',
+                  syncStatus: 'local_only' as const,
                 }
               : n
           )
@@ -391,14 +537,19 @@ export default function DashboardScreen() {
 
   // Salvataggio della nota modificata con re-trigger dell'IA in background
   const handleSaveEdit = async () => {
-    if (!selectedNote || !editNoteTitle.trim() || !editNoteContent.trim()) return;
+    console.log('--- DEBUG STATO ---', { Auth: isGoogleAuthenticated, TokenPresente: !!cloudConfig?.accessToken, CloudBooted: isCloudBooted, OggettoConfig: cloudConfig });
+    if (isGoogleAuthenticated && !isCloudBooted) { console.warn('Cloud non ancora pronto'); return; }
+    if (!selectedNote || !editNoteTitle.trim() || !editNoteContent.trim()) {
+      Alert.alert('Attenzione', 'Inserisci un titolo e del contenuto o un link per salvare la nota.');
+      return;
+    }
 
     const noteId = selectedNote.id;
     setIsViewModalVisible(false);
 
     // Aggiorna lo stato localmente all'istante
-    setRawNotes((prev) =>
-      prev.map((n) =>
+    setRawNotes((prev) => {
+      const next = prev.map((n) =>
         n.id === noteId
           ? {
               ...n,
@@ -406,11 +557,13 @@ export default function DashboardScreen() {
               content: editNoteContent,
               attachments: editNoteAttachments,
               isAnalyzing: true,
-              syncStatus: 'none',
+              syncStatus: 'none' as const,
             }
           : n
-      )
-    );
+      );
+      uploadToDrive(next);
+      return next;
+    });
 
     // Esegui elaborazione asincrona in background
     (async () => {
@@ -428,8 +581,9 @@ export default function DashboardScreen() {
         console.warn('[AIEngine] Errore in background durante la modifica:', err);
       }
 
-      setRawNotes((prev) =>
-        prev.map((n) =>
+      let nextNotesList: NoteItem[] = [];
+      setRawNotes((prev) => {
+        nextNotesList = prev.map((n) =>
           n.id === noteId
             ? {
                 ...n,
@@ -437,68 +591,21 @@ export default function DashboardScreen() {
                 tags: finalTags,
                 pastelAccent: finalColor,
                 isAnalyzing: false,
-                syncStatus: 'syncing',
+                syncStatus: 'synced' as const,
               }
             : n
-        )
-      );
-
-      // Caricamento cloud del payload modificato
-      try {
-        const cloudConf = await SecureStorage.getCloudConfig();
-        let encryptedPayload = '';
-
-        if (derivedKey) {
-          const encTitle = await CryptoEngine.encryptNote(editNoteTitle, derivedKey);
-          const encContent = await CryptoEngine.encryptNote(editNoteContent, derivedKey);
-          
-          let encAttachments = null;
-          if (editNoteAttachments.length > 0) {
-            encAttachments = await CryptoEngine.encryptNote(JSON.stringify(editNoteAttachments), derivedKey);
-          }
-
-          encryptedPayload = JSON.stringify({
-            titleCipher: encTitle.ciphertext,
-            titleIv: encTitle.iv,
-            contentCipher: encContent.ciphertext,
-            contentIv: encContent.iv,
-            attachmentsCipher: encAttachments ? encAttachments.ciphertext : undefined,
-            attachmentsIv: encAttachments ? encAttachments.iv : undefined,
-            date: selectedNote.date,
-            tags: finalTags,
-            lastUpdated: Date.now(),
-          });
-        } else {
-          encryptedPayload = JSON.stringify({
-            title: editNoteTitle,
-            content: editNoteContent,
-            attachments: editNoteAttachments,
-            date: selectedNote.date,
-            tags: finalTags,
-            lastUpdated: Date.now(),
-          });
-        }
-
-        const uploadSuccess = await CloudSyncEngine.uploadEncryptedPayload(noteId, encryptedPayload, cloudConf);
-
-        setRawNotes((prev) =>
-          prev.map((n) =>
-            n.id === noteId
-              ? {
-                  ...n,
-                  syncStatus: uploadSuccess ? 'synced' : 'local_only',
-                }
-              : n
-          )
         );
-      } catch (syncErr) {
-        console.warn('[Sync] Errore caricamento modifica:', syncErr);
+        return nextNotesList;
+      });
+
+      const uploadSuccess = await uploadToDrive(nextNotesList);
+      if (!uploadSuccess) {
         setRawNotes((prev) =>
           prev.map((n) =>
             n.id === noteId
               ? {
                   ...n,
-                  syncStatus: 'local_only',
+                  syncStatus: 'local_only' as const,
                 }
               : n
           )
@@ -510,15 +617,25 @@ export default function DashboardScreen() {
   };
 
   const handleDeleteNote = (noteId: string) => {
-    setRawNotes((prev) => prev.filter((n) => n.id !== noteId));
+    console.log('--- DEBUG STATO ---', { Auth: isGoogleAuthenticated, TokenPresente: !!cloudConfig?.accessToken, CloudBooted: isCloudBooted, OggettoConfig: cloudConfig });
+    if (isGoogleAuthenticated && !isCloudBooted) { console.warn('Cloud non ancora pronto'); return; }
+    setRawNotes((prev) => {
+      const next = prev.filter((n) => n.id !== noteId);
+      uploadToDrive(next);
+      return next;
+    });
     setIsViewModalVisible(false);
     setSelectedNote(null);
   };
 
   const toggleFavorite = (noteId: string) => {
-    setRawNotes((prev) =>
-      prev.map((n) => (n.id === noteId ? { ...n, isFavorite: !n.isFavorite } : n))
-    );
+    console.log('--- DEBUG STATO ---', { Auth: isGoogleAuthenticated, TokenPresente: !!cloudConfig?.accessToken, CloudBooted: isCloudBooted, OggettoConfig: cloudConfig });
+    if (isGoogleAuthenticated && !isCloudBooted) { console.warn('Cloud non ancora pronto'); return; }
+    setRawNotes((prev) => {
+      const next = prev.map((n) => (n.id === noteId ? { ...n, isFavorite: !n.isFavorite } : n));
+      uploadToDrive(next);
+      return next;
+    });
     // Aggiorna anche lo stato visualizzato locale del modal
     if (selectedNote && selectedNote.id === noteId) {
       setSelectedNote(prev => prev ? { ...prev, isFavorite: !prev.isFavorite } : null);
@@ -911,6 +1028,65 @@ export default function DashboardScreen() {
       </TouchableOpacity>
     );
   };
+
+  if (isGoogleAuthenticated && driveUnlockState === 'request_unlock') {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.background, justifyContent: 'center', alignItems: 'center', padding: 20 }]} edges={['top', 'bottom']}>
+        <View style={[styles.modalContent, { backgroundColor: currentTheme.surface, borderColor: currentTheme.border, alignSelf: 'center', width: '100%', maxWidth: 400 }]}>
+          <Text style={[styles.modalTitle, { color: currentTheme.textPrimary, textAlign: 'center', fontSize: 18, marginBottom: 12 }]}>Ripristino Backup Google Drive</Text>
+          <Text style={[styles.inputLabel, { color: currentTheme.textSecondary, marginBottom: 16, textAlign: 'center', lineHeight: 18 }]}>
+            È stato trovato un backup cifrato su Google Drive. Inserisci la Master Password utilizzata per crearlo.
+          </Text>
+          <TextInput
+            placeholder="Inserisci Master Password..."
+            placeholderTextColor={currentTheme.textSecondary}
+            value={drivePassword}
+            onChangeText={setDrivePassword}
+            secureTextEntry
+            style={[
+              styles.modalInput,
+              { color: currentTheme.textPrimary, borderColor: currentTheme.border, backgroundColor: currentTheme.background, textAlign: 'center', height: 44, marginBottom: 12 }
+            ]}
+          />
+          {driveUnlockError && (
+            <Text style={{ color: '#ef4444', textAlign: 'center', marginBottom: 12, fontWeight: '600', fontSize: 13 }}>
+              {driveUnlockError}
+            </Text>
+          )}
+          <Pressable
+            onPress={async () => {
+              if (!drivePassword.trim()) return;
+              setDriveUnlockError(null);
+              try {
+                const key = await CryptoEngine.deriveKey(drivePassword);
+                const ciphertext = encryptedCloudNotes.notesCipher || encryptedCloudNotes.ciphertext;
+                const iv = encryptedCloudNotes.notesIv || encryptedCloudNotes.iv;
+                if (!ciphertext || !iv) {
+                  throw new Error('Formato backup non valido.');
+                }
+                const decryptedText = await CryptoEngine.decryptNote(ciphertext, iv, key);
+                const decryptedNotes = JSON.parse(decryptedText);
+                
+                await SecureStorage.saveMasterPassword(drivePassword);
+                setMasterPassword(drivePassword);
+                setDerivedKey(key);
+                setIsUnlocked(true);
+                setRawNotes(decryptedNotes);
+                setDriveUnlockState('idle');
+              } catch (e) {
+                console.error('[Drive Restore] Decrittografia fallita:', e);
+                setDriveUnlockError('Password errata. Impossibile decifrare il backup.');
+                alert('PASSWORD ERRATA\nLa password inserita non è valida per decifrare questo backup.');
+              }
+            }}
+            style={[styles.saveButton, { backgroundColor: currentTheme.textPrimary, marginTop: 8 }]}
+          >
+            <Text style={[styles.saveButtonText, { color: isDark ? '#000' : '#fff' }]}>Decifra e Ripristina</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.background }]} edges={['top']}>
@@ -2138,6 +2314,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  saveButton: {
+    height: 44,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
 

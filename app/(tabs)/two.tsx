@@ -231,13 +231,11 @@ export default function SettingsScreen() {
 
             {/* Provider Selector Buttons */}
             <View style={styles.selectorGrid}>
-              {(['none', 'icloud', 'google_drive', 'webdav'] as const).map((p) => {
+              {(['none', 'google_drive'] as const).map((p) => {
                 const isSelected = cloudProvider === p;
                 const pastelColors: Record<string, string> = {
                   none: isDark ? '#27272a' : '#f4f4f5',
-                  icloud: isDark ? '#1a2730' : '#e0f2fe',
                   google_drive: isDark ? '#1b2d24' : '#e8f5e9',
-                  webdav: isDark ? '#3d2516' : '#fff3e0',
                 };
                 
                 return (
@@ -262,56 +260,12 @@ export default function SettingsScreen() {
                       ]}
                     >
                       {p === 'none' && 'Nessuno'}
-                      {p === 'icloud' && 'iCloud'}
                       {p === 'google_drive' && 'G-Drive'}
-                      {p === 'webdav' && 'WebDAV'}
                     </Text>
                   </Pressable>
                 );
               })}
             </View>
-
-            {/* WebDAV Specific Inputs */}
-            {cloudProvider === 'webdav' && (
-              <View style={styles.conditionalContainer}>
-                <Text style={[styles.label, { color: currentTheme.textPrimary }]}>URL Server WebDAV</Text>
-                <TextInput
-                  placeholder="https://esempio.com/nextcloud/remote.php/dav/"
-                  placeholderTextColor={currentTheme.textSecondary}
-                  value={webdavUrl}
-                  onChangeText={setWebdavUrl}
-                  style={[
-                    styles.input,
-                    { color: currentTheme.textPrimary, borderColor: currentTheme.border, backgroundColor: currentTheme.background }
-                  ]}
-                />
-                
-                <Text style={[styles.label, { color: currentTheme.textPrimary }]}>Username</Text>
-                <TextInput
-                  placeholder="Il tuo username..."
-                  placeholderTextColor={currentTheme.textSecondary}
-                  value={webdavUsername}
-                  onChangeText={setWebdavUsername}
-                  style={[
-                    styles.input,
-                    { color: currentTheme.textPrimary, borderColor: currentTheme.border, backgroundColor: currentTheme.background }
-                  ]}
-                />
-
-                <Text style={[styles.label, { color: currentTheme.textPrimary }]}>Password / App Password</Text>
-                <TextInput
-                  placeholder="La tua password WebDAV..."
-                  placeholderTextColor={currentTheme.textSecondary}
-                  value={webdavPassword}
-                  onChangeText={setWebdavPassword}
-                  secureTextEntry
-                  style={[
-                    styles.input,
-                    { color: currentTheme.textPrimary, borderColor: currentTheme.border, backgroundColor: currentTheme.background }
-                  ]}
-                />
-              </View>
-            )}
 
             {/* Google Drive Configuration & OAuth */}
             {cloudProvider === 'google_drive' && (
@@ -375,14 +329,6 @@ export default function SettingsScreen() {
                     </Text>
                   </Pressable>
                 )}
-              </View>
-            )}
-
-            {cloudProvider === 'icloud' && (
-              <View style={[styles.infoBadge, { backgroundColor: isDark ? '#1a2730' : '#e0f2fe', borderColor: currentTheme.border }]}>
-                <Text style={[styles.infoText, { color: isDark ? '#a1a1aa' : '#0284c7' }]}>
-                  ✦ iCloud sfrutta il container di sincronizzazione nativo di iOS. Le note verranno salvate localmente nella cartella JournalAI di iCloud Drive del dispositivo.
-                </Text>
               </View>
             )}
           </View>
