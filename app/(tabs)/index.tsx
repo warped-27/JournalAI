@@ -157,6 +157,10 @@ export default function DashboardScreen() {
   const [editLinkTitle, setEditLinkTitle] = useState('');
   const [editLinkUrl, setEditLinkUrl] = useState('');
 
+  // Stati caricamento autogenerazione titoli
+  const [isNewTitleLoading, setIsNewTitleLoading] = useState(false);
+  const [isEditTitleLoading, setIsEditTitleLoading] = useState(false);
+
   // Carica la Master Password all'avvio e ad ogni focus
   useEffect(() => {
     async function checkKeyAndDecrypt() {
@@ -713,6 +717,42 @@ export default function DashboardScreen() {
     });
   };
 
+  const handleGenerateNewTitle = async () => {
+    const uris = newNoteAttachments.map(att => att.uri).join(' ');
+    const combinedContent = [newNoteContent.trim(), uris].filter(Boolean).join(' ');
+
+    if (!combinedContent.trim()) return;
+    setIsNewTitleLoading(true);
+    try {
+      const aiConfig = await SecureStorage.getAIConfig();
+      const title = await AIEngine.generateTitle(combinedContent, aiConfig);
+      setNewNoteTitle(title);
+    } catch (err: any) {
+      console.warn('[AIEngine] Errore autogenerazione titolo:', err);
+      alert(`Errore: ${err.message || err}`);
+    } finally {
+      setIsNewTitleLoading(false);
+    }
+  };
+
+  const handleGenerateEditTitle = async () => {
+    const uris = editNoteAttachments.map(att => att.uri).join(' ');
+    const combinedContent = [editNoteContent.trim(), uris].filter(Boolean).join(' ');
+
+    if (!combinedContent.trim()) return;
+    setIsEditTitleLoading(true);
+    try {
+      const aiConfig = await SecureStorage.getAIConfig();
+      const title = await AIEngine.generateTitle(combinedContent, aiConfig);
+      setEditNoteTitle(title);
+    } catch (err: any) {
+      console.warn('[AIEngine] Errore autogenerazione titolo modifica:', err);
+      alert(`Errore: ${err.message || err}`);
+    } finally {
+      setIsEditTitleLoading(false);
+    }
+  };
+
   // Logica di Filtraggio delle Note in base al tab selezionato e alla barra di ricerca
   const filteredNotes = processedNotes.filter((note) => {
     // 1. Filtro per Tab attiva
@@ -1111,16 +1151,29 @@ export default function DashboardScreen() {
           <View style={[styles.modalContent, { backgroundColor: currentTheme.surface, borderColor: currentTheme.border }]}>
             <Text style={[styles.modalTitle, { color: currentTheme.textPrimary }]}>Nuova Nota Cifrata</Text>
             
-            <TextInput
-              placeholder="Titolo della nota..."
-              placeholderTextColor={currentTheme.textSecondary}
-              value={newNoteTitle}
-              onChangeText={setNewNoteTitle}
-              style={[
-                styles.modalInput, 
-                { color: currentTheme.textPrimary, borderColor: currentTheme.border, backgroundColor: currentTheme.background }
-              ]}
-            />
+            <View style={styles.titleInputContainer}>
+              <TextInput
+                placeholder="Titolo della nota..."
+                placeholderTextColor={currentTheme.textSecondary}
+                value={newNoteTitle}
+                onChangeText={setNewNoteTitle}
+                style={[
+                  styles.modalInput, 
+                  { flex: 1, marginBottom: 0, color: currentTheme.textPrimary, borderColor: currentTheme.border, backgroundColor: currentTheme.background }
+                ]}
+              />
+              <TouchableOpacity
+                onPress={handleGenerateNewTitle}
+                disabled={(newNoteContent.trim() === '' && newNoteAttachments.length === 0) || isNewTitleLoading}
+                style={[styles.generateTitleBtn, { borderColor: currentTheme.border, backgroundColor: currentTheme.surface }]}
+              >
+                {isNewTitleLoading ? (
+                  <ActivityIndicator size="small" color={currentTheme.textPrimary} />
+                ) : (
+                  <Text style={{ fontSize: 14 }}>✨</Text>
+                )}
+              </TouchableOpacity>
+            </View>
 
             <Text style={[styles.inputLabel, { color: currentTheme.textSecondary, marginBottom: 6 }]}>Contenuto</Text>
 
@@ -1283,16 +1336,29 @@ export default function DashboardScreen() {
           {/* Form del Contenuto */}
           <ScrollView style={styles.fsContent} showsVerticalScrollIndicator={false}>
             {/* Input Titolo */}
-            <TextInput
-              placeholder="Titolo della nota..."
-              placeholderTextColor={currentTheme.textSecondary}
-              value={editNoteTitle}
-              onChangeText={setEditNoteTitle}
-              style={[
-                styles.fsTitleInput, 
-                { color: currentTheme.textPrimary }
-              ]}
-            />
+            <View style={styles.fsTitleInputContainer}>
+              <TextInput
+                placeholder="Titolo della nota..."
+                placeholderTextColor={currentTheme.textSecondary}
+                value={editNoteTitle}
+                onChangeText={setEditNoteTitle}
+                style={[
+                  styles.fsTitleInput, 
+                  { flex: 1, marginBottom: 0, color: currentTheme.textPrimary }
+                ]}
+              />
+              <TouchableOpacity
+                onPress={handleGenerateEditTitle}
+                disabled={(editNoteContent.trim() === '' && editNoteAttachments.length === 0) || isEditTitleLoading}
+                style={[styles.fsGenerateTitleBtn, { borderColor: currentTheme.border, backgroundColor: currentTheme.surface }]}
+              >
+                {isEditTitleLoading ? (
+                  <ActivityIndicator size="small" color={currentTheme.textPrimary} />
+                ) : (
+                  <Text style={{ fontSize: 16 }}>✨</Text>
+                )}
+              </TouchableOpacity>
+            </View>
             
             {/* Riga Data & Badge */}
             <View style={styles.fsMetaRow}>
@@ -2042,6 +2108,34 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  titleInputContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  generateTitleBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fsTitleInputContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  fsGenerateTitleBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

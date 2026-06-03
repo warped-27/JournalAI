@@ -353,6 +353,93 @@ Nota da analizzare:
       console.error('[AIEngine RAG] Errore:', error);
       throw error;
     }
+  },
+
+  async generateTitle(content: string, aiConfig: AIConfig | null): Promise<string> {
+    if (!aiConfig || aiConfig.provider === 'none') {
+      throw new Error('Nessun provider IA configurato per la generazione dei titoli.');
+    }
+
+    const systemInstruction = 'Sei un assistente editoriale. Genera un titolo ultra-conciso (massimo 4-5 parole) che riassuma il testo fornito. Non usare virgolette, non aggiungere punteggiatura finale o commenti. Restituisci ESCLUSIVAMENTE il testo del titolo.';
+
+    try {
+      if (aiConfig.provider === 'gemini') {
+        if (!aiConfig.apiKey) throw new Error('API Key Gemini mancante.');
+
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${aiConfig.apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{
+                parts: [{ text: `Testo da riassumere:\n"${content}"` }]
+              }],
+              systemInstruction: {
+                parts: [{ text: systemInstruction }]
+              }
+            })
+          }
+        );
+
+        if (!response.ok) throw new Error(`Status HTTP Gemini Title: ${response.status}`);
+        const data = await response.json();
+        const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!candidateText) throw new Error('Risposta vuota da Gemini.');
+        return candidateText.trim();
+      }
+
+      if (aiConfig.provider === 'openai') {
+        if (!aiConfig.apiKey) throw new Error('API Key OpenAI mancante.');
+
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${aiConfig.apiKey}`
+          },
+          body: JSON.stringify({
+            model: 'gpt-4o-mini',
+            messages: [
+              { role: 'system', content: systemInstruction },
+              { role: 'user', content: `Testo:\n"${content}"` }
+            ]
+          })
+        });
+
+        if (!response.ok) throw new Error(`Status HTTP OpenAI Title: ${response.status}`);
+        const data = await response.json();
+        const responseText = data.choices?.[0]?.message?.content;
+        if (!responseText) throw new Error('Risposta vuota da OpenAI.');
+        return responseText.trim();
+      }
+
+      if (aiConfig.provider === 'ollama') {
+        const endpoint = aiConfig.customEndpoint || 'http://localhost:11434';
+        const model = aiConfig.modelName || 'llama3';
+
+        const prompt = `System: ${systemInstruction}\n\nTesto:\n"${content}"`;
+
+        const response = await fetch(`${endpoint}/api/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: model,
+            prompt: prompt,
+            stream: false
+          })
+        });
+
+        if (!response.ok) throw new Error(`Status HTTP Ollama Title: ${response.status}`);
+        const data = await response.json();
+        return (data.response || '').trim();
+      }
+
+      throw new Error(`Provider ${aiConfig.provider} non supportato per la generazione dei titoli.`);
+    } catch (error: any) {
+      console.error('[AIEngine Title] Errore:', error);
+      throw error;
+    }
   }
 };
 
