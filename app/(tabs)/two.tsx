@@ -224,19 +224,15 @@ export default function SettingsScreen() {
           
           {/* SEZIONE 1: Cloud Storage (BYO-Cloud) */}
           <View style={[styles.card, { backgroundColor: currentTheme.surface, borderColor: currentTheme.border }]}>
-            <Text style={[styles.cardTitle, { color: currentTheme.textPrimary }]}>1. Destinazione Cloud (BYO-Cloud)</Text>
+            <Text style={[styles.cardTitle, { color: currentTheme.textPrimary, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>1. DESTINAZIONE CLOUD (BYO-CLOUD)</Text>
             <Text style={[styles.cardDescription, { color: currentTheme.textSecondary }]}>
-              Seleziona dove verranno conservati i file JSON cifrati delle tue note.
+              Configurazione dell\'endpoint cloud privato. I log cifrati verranno scritti in questa directory remota.
             </Text>
 
             {/* Provider Selector Buttons */}
             <View style={styles.selectorGrid}>
               {(['none', 'google_drive'] as const).map((p) => {
                 const isSelected = cloudProvider === p;
-                const pastelColors: Record<string, string> = {
-                  none: isDark ? '#27272a' : '#f4f4f5',
-                  google_drive: isDark ? '#1b2d24' : '#e8f5e9',
-                };
                 
                 return (
                   <Pressable
@@ -245,8 +241,8 @@ export default function SettingsScreen() {
                     style={[
                       styles.selectorBtn,
                       { 
-                        borderColor: isSelected ? currentTheme.textPrimary : currentTheme.border,
-                        backgroundColor: isSelected ? pastelColors[p] : currentTheme.background
+                        borderColor: isSelected ? '#00FF41' : '#333333',
+                        backgroundColor: isSelected ? '#0A0A0A' : '#1A1A1A'
                       }
                     ]}
                   >
@@ -254,7 +250,7 @@ export default function SettingsScreen() {
                       style={[
                         styles.selectorBtnText, 
                         { 
-                          color: isSelected ? currentTheme.textPrimary : currentTheme.textSecondary,
+                          color: isSelected ? '#00FF41' : '#E0E0E0',
                           fontWeight: isSelected ? '600' : '400'
                         }
                       ]}
@@ -270,9 +266,9 @@ export default function SettingsScreen() {
             {/* Google Drive Configuration & OAuth */}
             {cloudProvider === 'google_drive' && (
               <View style={styles.conditionalContainer}>
-                <Text style={[styles.label, { color: currentTheme.textPrimary }]}>Client ID OAuth Google</Text>
+                <Text style={[styles.label, { color: currentTheme.textPrimary, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>Client ID OAuth Google (OAUTH_ID)</Text>
                 <TextInput
-                  placeholder="Inserisci il tuo Client ID OAuth..."
+                  placeholder="Client ID OAuth..."
                   placeholderTextColor={currentTheme.textSecondary}
                   value={googleClientId}
                   onChangeText={setGoogleClientId}
@@ -335,19 +331,15 @@ export default function SettingsScreen() {
 
           {/* SEZIONE 2: AI Config (BYOK) */}
           <View style={[styles.card, { backgroundColor: currentTheme.surface, borderColor: currentTheme.border }]}>
-            <Text style={[styles.cardTitle, { color: currentTheme.textPrimary }]}>2. Motore IA (Bring Your Own Key)</Text>
+            <Text style={[styles.cardTitle, { color: currentTheme.textPrimary, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>2. MOTORE IA (BRING YOUR OWN KEY)</Text>
             <Text style={[styles.cardDescription, { color: currentTheme.textSecondary }]}>
-              Seleziona Google Gemini e inserisci la tua chiave API. Nessuna chiave viene mai inoltrata a server esterni.
+              Pipeline d\'inferenza. Selezionare Google Gemini e immettere la chiave API. Le richieste ed i payload rimangono locali e sandboxed.
             </Text>
 
             {/* AI Selector Buttons */}
             <View style={styles.selectorGrid}>
               {(['none', 'gemini'] as const).map((p) => {
                 const isSelected = aiProvider === p;
-                const pastelColors: Record<string, string> = {
-                  none: isDark ? '#27272a' : '#f4f4f5',
-                  gemini: isDark ? '#1a2730' : '#e0f2fe',
-                };
 
                 return (
                   <Pressable
@@ -356,8 +348,8 @@ export default function SettingsScreen() {
                     style={[
                       styles.selectorBtn,
                       { 
-                        borderColor: isSelected ? currentTheme.textPrimary : currentTheme.border,
-                        backgroundColor: isSelected ? pastelColors[p] : currentTheme.background
+                        borderColor: isSelected ? '#00FF41' : '#333333',
+                        backgroundColor: isSelected ? '#0A0A0A' : '#1A1A1A'
                       }
                     ]}
                   >
@@ -365,7 +357,7 @@ export default function SettingsScreen() {
                       style={[
                         styles.selectorBtnText, 
                         { 
-                          color: isSelected ? currentTheme.textPrimary : currentTheme.textSecondary,
+                          color: isSelected ? '#00FF41' : '#E0E0E0',
                           fontWeight: isSelected ? '600' : '400'
                         }
                       ]}
@@ -381,9 +373,9 @@ export default function SettingsScreen() {
             {/* API Key & Gemini Model Selector Inputs */}
             {aiProvider === 'gemini' && (
               <View style={styles.conditionalContainer}>
-                <Text style={[styles.label, { color: currentTheme.textPrimary }]}>Chiave API</Text>
+                <Text style={[styles.label, { color: currentTheme.textPrimary, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>Chiave API (GEMINI_API_KEY)</Text>
                 <TextInput
-                  placeholder="Inserisci la tua API Key di Gemini..."
+                  placeholder="API Key Gemini..."
                   placeholderTextColor={currentTheme.textSecondary}
                   value={aiApiKey}
                   onChangeText={setAiApiKey}
@@ -394,7 +386,7 @@ export default function SettingsScreen() {
                   ]}
                 />
 
-                <Text style={[styles.label, { color: currentTheme.textPrimary }]}>Modello Gemini</Text>
+                <Text style={[styles.label, { color: currentTheme.textPrimary, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>Modello LLM (MODEL_ID)</Text>
                 <View style={styles.selectorGrid}>
                   {([
                     'gemini-3.1-flash-lite',
@@ -404,13 +396,6 @@ export default function SettingsScreen() {
                     'gemini-1.5-pro'
                   ] as const).map((m) => {
                     const isSelected = geminiModel === m;
-                    const modelColors: Record<string, string> = {
-                      'gemini-3.1-flash-lite': isDark ? '#1b2d24' : '#e8f5e9', // Salvia
-                      'gemini-2.5-flash': isDark ? '#162b3d' : '#e3f2fd',      // Azzurro
-                      'gemini-2.5-pro': isDark ? '#2d1b33' : '#f3e5f5',        // Lilla
-                      'gemini-1.5-flash': isDark ? '#3d2516' : '#fff3e0',      // Pesca
-                      'gemini-1.5-pro': isDark ? '#2d1a1a' : '#ffebee',        // Rosa
-                    };
                     
                     return (
                       <Pressable
@@ -419,8 +404,8 @@ export default function SettingsScreen() {
                         style={[
                           styles.selectorBtn,
                           {
-                            borderColor: isSelected ? currentTheme.textPrimary : currentTheme.border,
-                            backgroundColor: isSelected ? modelColors[m] : currentTheme.background,
+                            borderColor: isSelected ? '#00FF41' : '#333333',
+                            backgroundColor: isSelected ? '#0A0A0A' : '#1A1A1A',
                             minWidth: '45%',
                             marginBottom: 4
                           }
@@ -430,7 +415,7 @@ export default function SettingsScreen() {
                           style={[
                             styles.selectorBtnText,
                             {
-                              color: isSelected ? currentTheme.textPrimary : currentTheme.textSecondary,
+                              color: isSelected ? '#00FF41' : '#E0E0E0',
                               fontWeight: isSelected ? '600' : '400',
                               fontSize: 12
                             }
@@ -518,7 +503,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   card: {
-    borderRadius: 16,
+    borderRadius: 2,
     borderWidth: 1,
     padding: 16,
     marginBottom: 16,
@@ -560,12 +545,13 @@ const styles = StyleSheet.create({
     minWidth: '45%',
     height: 38,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   selectorBtnText: {
     fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   conditionalContainer: {
     marginTop: 12,
@@ -579,7 +565,7 @@ const styles = StyleSheet.create({
   infoBadge: {
     marginTop: 12,
     padding: 10,
-    borderRadius: 8,
+    borderRadius: 2,
     borderWidth: 1,
     borderStyle: 'dashed',
   },
@@ -591,7 +577,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 8,
-    borderRadius: 8,
+    borderRadius: 2,
     borderWidth: 1,
     marginTop: 4,
   },
@@ -601,10 +587,15 @@ const styles = StyleSheet.create({
   },
   oauthBtn: {
     height: 38,
-    borderRadius: 8,
+    borderRadius: 2,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 6,
+    shadowColor: '#00FF41',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 8,
   },
   oauthBtnText: {
     fontSize: 13,
@@ -616,7 +607,7 @@ const styles = StyleSheet.create({
   },
   statusBanner: {
     padding: 12,
-    borderRadius: 10,
+    borderRadius: 2,
     alignItems: 'center',
   },
   statusBannerText: {
@@ -625,9 +616,14 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     height: 48,
-    borderRadius: 12,
+    borderRadius: 2,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#00FF41',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 8,
   },
   saveButtonText: {
     fontSize: 15,
@@ -635,7 +631,7 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     height: 40,
-    borderRadius: 10,
+    borderRadius: 2,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',

@@ -1,37 +1,37 @@
 export const Palette = {
   light: {
-    background: '#f9f9fb',      // Avorio morbido (Sfondo principale)
-    surface: '#ffffff',         // Bianco puro (Card, Sidebar)
-    textPrimary: '#18181b',     // Zinc-900 (Massimo contrasto per caratteri semplici)
-    textSecondary: '#71717a',   // Zinc-500 (Riassunti, tag desaturati)
-    border: '#e4e4e7',          // Zinc-200 (Bordi finissimi)
-    accentPastel: '#e8f5e9',    // Salvia chiarissimo per elementi IA
+    background: '#0A0A0A',      // Grigio abissale (Terminal background)
+    surface: '#1A1A1A',         // Grigio antracite (Card background)
+    textPrimary: '#E0E0E0',     // Grigio chiaro (Terminal text)
+    textSecondary: '#888888',   // Grigio medio (Subtext/placeholders)
+    border: '#333333',          // Bordi scuri netti
+    accentPastel: '#00FF41',    // Verde Neon/Fluo (Accento IA / Terminal highlight)
   },
   dark: {
-    background: '#0c0d12',      // Deep Charcoal NotebookLM (Sfondo principale scuro)
-    surface: '#16171f',         // Antracite morbido (Card, Sidebar)
-    textPrimary: '#f4f4f5',     // Zinc-100 (Massimo contrasto bianco morbido)
-    textSecondary: '#a1a1aa',   // Zinc-400 (Riassunti, tag desaturati)
-    border: '#27272a',          // Zinc-800 (Bordi scuri discreti)
-    accentPastel: '#1b2e24',    // Salvia scuro desaturato per elementi IA
+    background: '#0A0A0A',      // Grigio abissale (Terminal background)
+    surface: '#1A1A1A',         // Grigio antracite (Card background)
+    textPrimary: '#E0E0E0',     // Grigio chiaro (Terminal text)
+    textSecondary: '#888888',   // Grigio medio (Subtext/placeholders)
+    border: '#333333',          // Bordi scuri netti
+    accentPastel: '#00FF41',    // Verde Neon/Fluo (Accento IA / Terminal highlight)
   }
 };
 
-// Esportazione di default per mantenere la retrocompatibilità con i componenti Themed e i layout generati da Expo Router
+// Esportazione di default per i componenti Themed e tab bars
 const Colors = {
   light: {
     text: Palette.light.textPrimary,
     background: Palette.light.background,
-    tint: Palette.light.textPrimary, // Massimo contrasto per gli elementi attivi
+    tint: '#00FF41',            // Verde Neon attivo per tab bar
     tabIconDefault: Palette.light.textSecondary,
-    tabIconSelected: Palette.light.textPrimary,
+    tabIconSelected: '#00FF41',
   },
   dark: {
     text: Palette.dark.textPrimary,
     background: Palette.dark.background,
-    tint: Palette.dark.textPrimary, // Massimo contrasto per gli elementi attivi
+    tint: '#00FF41',            // Verde Neon attivo per tab bar
     tabIconDefault: Palette.dark.textSecondary,
-    tabIconSelected: Palette.dark.textPrimary,
+    tabIconSelected: '#00FF41',
   },
 };
 

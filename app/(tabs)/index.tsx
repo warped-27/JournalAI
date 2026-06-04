@@ -21,6 +21,7 @@ import { Palette } from '../../constants/Colors';
 import { SecureStorage, CloudConfig } from '../../constants/SecureStorage';
 import { CryptoEngine } from '../../constants/CryptoEngine';
 import { AIEngine } from '../../constants/AIEngine';
+import { NerdLogo } from '../../components/NerdLogo';
 
 export interface Attachment {
   id: string;
@@ -52,56 +53,56 @@ interface NoteItem {
 const INITIAL_NOTES: NoteItem[] = [
   {
     id: '1',
-    title: 'Riflessioni BYO-Cloud',
-    excerpt: 'Analisi sui vantaggi del modello BYO-Cloud...',
-    content: 'Analisi sui vantaggi del modello BYO-Cloud. L\'assenza di server proprietari elimina i costi di manutenzione e garantisce la sovranità dei dati all\'utente. I file vengono cifrati sul dispositivo e caricati direttamente sullo storage privato dell\'utente.',
+    title: 'LOG-001: Architettura BYO-Cloud',
+    excerpt: 'Analisi strutturale sul paradigma Bring Your Own Cloud...',
+    content: 'Analisi strutturale sul paradigma Bring Your Own Cloud. L\'assenza di endpoint proprietari neutralizza vettori di attacco centralizzati e garantisce il controllo assoluto delle chiavi. I payload vengono cifrati in locale tramite AES-CTR (256-bit) e caricati sul bucket privato dell\'utente.',
     date: 'Oggi, 08:30',
-    tags: ['Architettura', 'Sintesi-AI'],
+    tags: ['Core', 'Security'],
     pastelAccent: {
-      light: '#e8f5e9', // Salvia tenue
-      dark: '#1b2e24',  // Salvia scuro
+      light: '#1A1A1A',
+      dark: '#1A1A1A',
     },
     syncStatus: 'synced',
     isFavorite: true,
   },
   {
     id: '2',
-    title: 'Vocale: Idee Startup',
-    excerpt: 'Trascrizione crittografata locale della discussione...',
-    content: 'Trascrizione crittografata locale. Discussione sulle funzionalità principali di Nerd Journal: crittografia client-side AES-GCM e derivazione con PBKDF2 per garantire la massima riservatezza delle registrazioni.',
+    title: 'LOG-002: Trascrizione Spettrale',
+    excerpt: 'Analisi delle acquisizioni vocali e decodifica locale...',
+    content: 'Analisi delle acquisizioni vocali e decodifica locale. Log dei test su Nerd Journal: crittografia client-side AES-GCM e derivazione con PBKDF2 per garantire la massima riservatezza delle registrazioni.',
     date: 'Ieri, 18:15',
-    tags: ['Vocale', 'Analisi-AI'],
+    tags: ['Audio', 'AI-RAG'],
     pastelAccent: {
-      light: '#e3f2fd', // Carta da zucchero tenue
-      dark: '#162b3d',  // Carta da zucchero scuro
+      light: '#1A1A1A',
+      dark: '#1A1A1A',
     },
     syncStatus: 'synced',
     isFavorite: false,
   },
   {
     id: '3',
-    title: 'Studio Modelli Locali',
-    excerpt: 'Valutazione delle prestazioni di Ollama offline...',
-    content: 'Valutazione delle prestazioni di Ollama e modelli offline (Phi-4, Llama 3) su dispositivi mobili. Analisi della latenza ottimale per la generazione di tag e riassunti automatici senza alcuna connessione internet.',
+    title: 'LOG-003: Benchmarking Gemini LLM',
+    excerpt: 'Elaborazione del RAG locale con LLM in cloud...',
+    content: 'Valutazione latenza delle pipeline RAG local-to-cloud tramite modello predefinito gemini-3.1-flash-lite. Generazione automatica di indici semantici, metadati di sistema e tag relazionali senza leak dei dati in chiaro.',
     date: '28 Mag',
-    tags: ['Modelli', 'Ricerca'],
+    tags: ['Gemini', 'LLM'],
     pastelAccent: {
-      light: '#f3e5f5', // Lilla tenue
-      dark: '#2d1b33',  // Lilla scuro
+      light: '#1A1A1A',
+      dark: '#1A1A1A',
     },
     syncStatus: 'synced',
     isFavorite: true,
   },
   {
     id: '4',
-    title: 'Integrazione WebDAV',
-    excerpt: 'Sincronizzazione incrementale dei file JSON cifrati...',
+    title: 'LOG-004: Protocollo Sync WebDAV',
+    excerpt: 'Sincronizzazione di log cifrati su endpoint WebDAV...',
     content: 'Sincronizzazione incrementale dei file JSON cifrati. Algoritmo di risoluzione dei conflitti basato su timestamp locali e verifica della firma digitale per evitare perdite di dati in modalità Last Write Wins.',
     date: '24 Mag',
-    tags: ['Storage', 'Sync'],
+    tags: ['Sync', 'WebDAV'],
     pastelAccent: {
-      light: '#fff3e0', // Pesca tenue
-      dark: '#3d2516',  // Pesca scuro
+      light: '#1A1A1A',
+      dark: '#1A1A1A',
     },
     syncStatus: 'synced',
     isFavorite: false,
@@ -1033,9 +1034,9 @@ export default function DashboardScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.background, justifyContent: 'center', alignItems: 'center', padding: 20 }]} edges={['top', 'bottom']}>
         <View style={[styles.modalContent, { backgroundColor: currentTheme.surface, borderColor: currentTheme.border, alignSelf: 'center', width: '100%', maxWidth: 400 }]}>
-          <Text style={[styles.modalTitle, { color: currentTheme.textPrimary, textAlign: 'center', fontSize: 18, marginBottom: 12 }]}>Ripristino Backup Google Drive</Text>
+          <Text style={[styles.modalTitle, { color: currentTheme.textPrimary, textAlign: 'center', fontSize: 18, marginBottom: 12 }]}>Ripristino Database da Google Drive</Text>
           <Text style={[styles.inputLabel, { color: currentTheme.textSecondary, marginBottom: 16, textAlign: 'center', lineHeight: 18 }]}>
-            È stato trovato un backup cifrato su Google Drive. Inserisci la Master Password utilizzata per crearlo.
+            Rilevato archivio crittografato su cloud. Fornire Master Password per decifrare i record.
           </Text>
           <TextInput
             placeholder="Inserisci Master Password..."
@@ -1093,7 +1094,7 @@ export default function DashboardScreen() {
       {/* Top Header */}
       <View style={[styles.header, { borderColor: currentTheme.border }]}>
         <View>
-          <Text style={[styles.headerTitle, { color: currentTheme.textPrimary }]}>Nerd Journal</Text>
+          <NerdLogo fontSize={20} />
           <Text style={[styles.headerSubtitle, { color: currentTheme.textSecondary }]}>spazio_di_lavoro / locale</Text>
         </View>
         
@@ -1117,7 +1118,7 @@ export default function DashboardScreen() {
             }
           ]}>
             <Text style={[styles.warningText, { color: isDark ? '#ffcc80' : '#e65100' }]}>
-              🔒 Sblocca il diario inserendo la Master Password nelle Impostazioni
+              🔒 Autenticazione richiesta. Sbloccare la sessione decifrando il database locale.
             </Text>
           </View>
         </View>
@@ -1129,7 +1130,7 @@ export default function DashboardScreen() {
         <View style={[styles.searchBar, { backgroundColor: currentTheme.surface, borderColor: currentTheme.border }]}>
           <Text style={[styles.searchIcon, { color: currentTheme.textSecondary }]}>🔍</Text>
           <TextInput
-            placeholder={isUnlocked ? (selectedFilter === 'Secondo Cervello' ? "Chiedi al Secondo Cervello..." : "Cerca nei tuoi quaderni...") : "Sblocca per cercare..."}
+            placeholder={isUnlocked ? (selectedFilter === 'Secondo Cervello' ? "Invia query alla Rete Neurale Gemini..." : "Filtra record per tag/chiave...") : "Dispositivo bloccato. Eseguire login..."}
             placeholderTextColor={currentTheme.textSecondary}
             value={selectedFilter === 'Secondo Cervello' ? ragQuery : searchQuery}
             onChangeText={(text) => {
@@ -1174,9 +1175,18 @@ export default function DashboardScreen() {
                 disabled={!isUnlocked}
                 style={[
                   styles.tabButton,
+                  {
+                    backgroundColor: '#1A1A1A',
+                    borderColor: '#333333',
+                  },
                   isActive && { 
-                    backgroundColor: isDark ? '#1a2730' : '#e0f2fe',
-                    borderColor: currentTheme.textPrimary,
+                    backgroundColor: '#0A0A0A',
+                    borderColor: '#00FF41',
+                    shadowColor: '#00FF41',
+                    shadowOffset: { width: 0, height: 0 },
+                    shadowOpacity: 0.6,
+                    shadowRadius: 6,
+                    elevation: 4,
                   },
                   !isUnlocked && { opacity: 0.5 }
                 ]}
@@ -1185,7 +1195,7 @@ export default function DashboardScreen() {
                   style={[
                     styles.tabButtonText, 
                     { 
-                      color: isActive ? currentTheme.textPrimary : currentTheme.textSecondary,
+                      color: isActive ? '#00FF41' : '#E0E0E0',
                       fontWeight: isActive ? '600' : '400'
                     }
                   ]}
@@ -1206,12 +1216,12 @@ export default function DashboardScreen() {
           return (
             <View style={styles.ragResponseWrapper}>
               <View style={styles.ragHeaderTitleRow}>
-                <Text style={styles.ragHeaderTitle}>🧠 Risposta del Secondo Cervello</Text>
-                {isRAGLoading && <ActivityIndicator size="small" color="#93c5fd" />}
+                <Text style={styles.ragHeaderTitle}>🧠 QUERY RAG ESEGUITA</Text>
+                {isRAGLoading && <ActivityIndicator size="small" color="#00FF41" />}
               </View>
               
               {isRAGLoading ? (
-                <Text style={styles.ragLoadingText}>Interrogando il Secondo Cervello...</Text>
+                <Text style={styles.ragLoadingText}>Scansione indice semantico in corso...</Text>
               ) : (
                 <Text style={styles.ragResponseText}>{ragResponse}</Text>
               )}
@@ -1231,16 +1241,16 @@ export default function DashboardScreen() {
             <ScrollView contentContainerStyle={styles.insightsDashboardContainer} showsVerticalScrollIndicator={false}>
               <View style={styles.insightsDashboard}>
                 <Text style={[styles.insightsTitle, { color: currentTheme.textPrimary }]}>
-                  🧠 Secondo Cervello
+                  {'> '}SECONDO_CERVELLO
                 </Text>
                 <Text style={[styles.insightsDesc, { color: currentTheme.textSecondary }]}>
-                  Usa il RAG locale per interrogare i tuoi appunti cifrati. Poni una domanda nella barra di ricerca, oppure seleziona uno dei macro-temi ricavati dall'IA.
+                  Rete Neurale Gemini in attesa di input. Elaborazione dati attiva. Esegui query RAG locale per estrarre log incrociati o seleziona un tag di sistema.
                 </Text>
                 
                 {tagList.length === 0 ? (
                   <View style={[styles.emptyInsights, { borderColor: currentTheme.border, backgroundColor: currentTheme.surface }]}>
-                    <Text style={{ color: currentTheme.textSecondary, textAlign: 'center', fontSize: 13 }}>
-                      Nessun insight disponibile. L'IA analizzerà automaticamente le note appena create per estrarne i tag principali.
+                    <Text style={{ color: currentTheme.textSecondary, textAlign: 'center', fontSize: 13, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
+                      Nessun tag di sistema rilevato. Analisi automatica del payload non ancora eseguita.
                     </Text>
                   </View>
                 ) : (
@@ -1258,8 +1268,8 @@ export default function DashboardScreen() {
                           style={[
                             styles.tagCard,
                             {
-                              backgroundColor: tagBg,
-                              borderColor: tagBorder,
+                              backgroundColor: '#1A1A1A',
+                              borderColor: currentTheme.border,
                             }
                           ]}
                         >
@@ -1293,7 +1303,7 @@ export default function DashboardScreen() {
             ListHeaderComponent={selectedFilter === 'Secondo Cervello' ? renderRAGResponseHeader : undefined}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Text style={{ color: currentTheme.textSecondary }}>Nessuna nota trovata con i filtri selezionati.</Text>
+                <Text style={{ color: currentTheme.textSecondary, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>Database locale vuoto. Nessun log rilevato per i filtri attivi.</Text>
               </View>
             }
           />
@@ -1307,7 +1317,6 @@ export default function DashboardScreen() {
           styles.fab, 
           { 
             backgroundColor: currentTheme.textPrimary,
-            shadowColor: isDark ? '#000' : '#71717a',
             opacity: isUnlocked ? 1 : 0.5
           }
         ]}
@@ -1325,11 +1334,11 @@ export default function DashboardScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: currentTheme.surface, borderColor: currentTheme.border }]}>
-            <Text style={[styles.modalTitle, { color: currentTheme.textPrimary }]}>Nuova Nota Cifrata</Text>
+            <Text style={[styles.modalTitle, { color: currentTheme.textPrimary }]}>Inizializza Nuovo Log</Text>
             
             <View style={styles.titleInputContainer}>
               <TextInput
-                placeholder="Titolo della nota..."
+                placeholder="Identificativo del log (Titolo)..."
                 placeholderTextColor={currentTheme.textSecondary}
                 value={newNoteTitle}
                 onChangeText={setNewNoteTitle}
@@ -1351,22 +1360,22 @@ export default function DashboardScreen() {
               </TouchableOpacity>
             </View>
 
-            <Text style={[styles.inputLabel, { color: currentTheme.textSecondary, marginBottom: 6 }]}>Contenuto</Text>
+            <Text style={[styles.inputLabel, { color: currentTheme.textSecondary, marginBottom: 6 }]}>Payload dati (Contenuto)</Text>
 
             {isTranscribing ? (
               <View style={[styles.transcribingContainer, { borderColor: currentTheme.border, backgroundColor: currentTheme.background }]}>
                 <Text style={{ fontSize: 22, marginBottom: 8 }}>🔄</Text>
                 <Text style={[styles.transcribingText, { color: currentTheme.textPrimary }]}>
-                  🔄 IA sta ascoltando...
+                  🔄 Streaming Audio...
                 </Text>
                 <Text style={[styles.transcribingSubtext, { color: currentTheme.textSecondary }]}>
-                  Trascrizione audio in corso tramite API client-side
+                  Analisi spettrografica e trascrizione in corso...
                 </Text>
               </View>
             ) : (
               <View style={styles.micInputContainer}>
                 <TextInput
-                  placeholder="Scrivi qui i tuoi pensieri..."
+                  placeholder="Inizializza payload di log. Immettere dati da cifrare..."
                   placeholderTextColor={currentTheme.textSecondary}
                   value={newNoteContent}
                   onChangeText={setNewNoteContent}
@@ -1514,7 +1523,7 @@ export default function DashboardScreen() {
             {/* Input Titolo */}
             <View style={styles.fsTitleInputContainer}>
               <TextInput
-                placeholder="Titolo della nota..."
+                placeholder="Identificativo del log (Titolo)..."
                 placeholderTextColor={currentTheme.textSecondary}
                 value={editNoteTitle}
                 onChangeText={setEditNoteTitle}
@@ -1554,7 +1563,7 @@ export default function DashboardScreen() {
 
             {/* Input Contenuto */}
             <TextInput
-              placeholder="Scrivi qui i tuoi pensieri..."
+              placeholder="Inizializza payload di log. Immettere dati da cifrare..."
               placeholderTextColor={currentTheme.textSecondary}
               value={editNoteContent}
               onChangeText={setEditNoteContent}
@@ -1665,6 +1674,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     letterSpacing: -0.5,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   headerSubtitle: {
     fontSize: 12,
@@ -1752,7 +1762,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: (Dimensions.get('window').width - 52) / 2,
-    borderRadius: 16,
+    borderRadius: 2,
     borderWidth: 1,
     borderLeftWidth: 4,
     padding: 14,
@@ -1785,6 +1795,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     lineHeight: 20,
     marginBottom: 6,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   cardExcerpt: {
     fontSize: 12,
@@ -1813,6 +1824,7 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 9,
     fontWeight: '500',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   syncContainer: {
     marginTop: 2,
@@ -1832,13 +1844,14 @@ const styles = StyleSheet.create({
     right: 24,
     width: 56,
     height: 56,
-    borderRadius: 16,
+    borderRadius: 4,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
+    shadowColor: '#00FF41',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 8,
   },
   fabText: {
     fontSize: 28,
@@ -1856,7 +1869,7 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '100%',
     maxWidth: 400,
-    borderRadius: 16,
+    borderRadius: 2,
     borderWidth: 1,
     padding: 20,
     elevation: 5,
@@ -2042,6 +2055,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     padding: 0,
     marginBottom: 10,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   fsMetaRow: {
     flexDirection: 'row',
@@ -2082,13 +2096,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   ragResponseWrapper: {
-    backgroundColor: '#1e293b',
-    borderColor: '#334155',
+    backgroundColor: '#1A1A1A',
+    borderColor: '#00FF41',
     borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: 2,
     padding: 18,
     marginBottom: 20,
     width: '100%',
+    shadowColor: '#00FF41',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 4,
   },
   ragHeaderTitleRow: {
     flexDirection: 'row',
@@ -2099,19 +2118,21 @@ const styles = StyleSheet.create({
   ragHeaderTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#93c5fd',
+    color: '#00FF41',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   ragLoadingText: {
     fontSize: 14,
-    color: '#cbd5e1',
+    color: '#888888',
     fontStyle: 'italic',
     lineHeight: 20,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   ragResponseText: {
     fontSize: 14,
-    color: '#f8fafc',
+    color: '#E0E0E0',
     lineHeight: 22,
   },
   ragContextTitle: {
@@ -2154,7 +2175,7 @@ const styles = StyleSheet.create({
   tagCard: {
     width: (Dimensions.get('window').width - 52) / 2,
     borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: 2,
     padding: 16,
     marginBottom: 4,
   },
@@ -2166,10 +2187,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   tagCardCount: {
     fontSize: 11,
     fontWeight: '500',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   clearSearchBtn: {
     paddingHorizontal: 8,
@@ -2317,9 +2340,14 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     height: 44,
-    borderRadius: 10,
+    borderRadius: 2,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#00FF41',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 8,
   },
   saveButtonText: {
     fontSize: 14,

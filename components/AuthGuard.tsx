@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Palette } from '../constants/Colors';
 import { SecureStorage } from '../constants/SecureStorage';
 import { CryptoEngine } from '../constants/CryptoEngine';
+import { NerdLogo } from './NerdLogo';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -147,14 +148,12 @@ export default function AuthGuard({ children }: AuthGuardProps) {
       <View style={styles.authContainer}>
         {/* Header Logo */}
         <View style={styles.header}>
-          <Text style={[styles.logoText, { color: currentTheme.textPrimary }]}>
-            {hasPassword ? 'Nerd Journal' : 'Benvenuto in Nerd Journal'}
-          </Text>
+          <NerdLogo fontSize={hasPassword ? 22 : 18} />
           
           <View style={[styles.statusNode, { borderColor: currentTheme.border, backgroundColor: currentTheme.surface }]}>
             <View style={[styles.statusDot, { backgroundColor: hasPassword ? '#f59e0b' : '#3b82f6' }]} />
             <Text style={[styles.statusText, { color: currentTheme.textPrimary }]}>
-              {hasPassword ? 'Zero-Knowledge Auth' : 'Inizializzazione Spazio'}
+              {hasPassword ? 'Secured Sandbox' : 'Init Database...'}
             </Text>
           </View>
         </View>
@@ -163,10 +162,10 @@ export default function AuthGuard({ children }: AuthGuardProps) {
         {!hasPassword ? (
           <View style={[styles.authCard, { backgroundColor: currentTheme.surface, borderColor: currentTheme.border }]}>
             <Text style={[styles.cardTitle, { color: currentTheme.textPrimary }]}>
-              Crea Master Password
+              Generazione Master Password
             </Text>
             <Text style={[styles.cardDescription, { color: currentTheme.textSecondary }]}>
-              Questa password verrà utilizzata localmente sul tuo dispositivo per generare la chiave crittografica AES-GCM 256. Non verrà mai trasmessa in rete.
+              Immettere entropia di sicurezza. Verrà eseguita la derivazione PBKDF2 a 10.000 iterazioni per ricavare la chiave locale AES-CTR 256-bit.
             </Text>
 
             <TextInput
@@ -214,7 +213,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
               style={[styles.unlockBtn, { backgroundColor: currentTheme.textPrimary, width: '100%', marginTop: 8 }]}
             >
               <Text style={[styles.unlockBtnText, { color: isDark ? '#000' : '#fff' }]}>
-                Inizializza Spazio Cifrato
+                Inizializza Database Locale
               </Text>
             </Pressable>
           </View>
@@ -222,14 +221,14 @@ export default function AuthGuard({ children }: AuthGuardProps) {
           /* UI di Sblocco (Accessi Successivi) */
           <View style={[styles.authCard, { backgroundColor: currentTheme.surface, borderColor: currentTheme.border }]}>
             <Text style={[styles.cardTitle, { color: currentTheme.textPrimary }]}>
-              Spazio di Lavoro Bloccato
+              Terminale Crittografato
             </Text>
             <Text style={[styles.cardDescription, { color: currentTheme.textSecondary }]}>
-              Inserisci la Master Password per derivare le chiavi crittografiche client-side e ripristinare la sessione in RAM.
+              Autenticazione richiesta. Immettere Master Password per derivare la chiave AES simmetrica ed allocare la sessione in RAM.
             </Text>
 
             <TextInput
-              placeholder="Inserisci Master Password..."
+              placeholder="Master Password..."
               placeholderTextColor={currentTheme.textSecondary}
               value={enteredPassword}
               onChangeText={setEnteredPassword}
@@ -257,7 +256,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
                 style={[styles.unlockBtn, { backgroundColor: currentTheme.textPrimary, flex: 1 }]}
               >
                 <Text style={[styles.unlockBtnText, { color: isDark ? '#000' : '#fff' }]}>
-                  Sblocca Spazio
+                  Esegui Decrittografia (Sblocca)
                 </Text>
               </Pressable>
 
@@ -292,7 +291,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
         {/* Footer info sicurezza */}
         <Text style={[styles.footerText, { color: currentTheme.textSecondary }]}>
-          Nessuna chiave viene mai inoltrata a server centralizzati. Tutto avviene interamente in locale nella sandbox del tuo browser o del dispositivo.
+          Nessuna chiave o log viene esposto all'esterno. Esecuzione interamente locale e sandboxed.
         </Text>
       </View>
     </SafeAreaView>
@@ -341,15 +340,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   authCard: {
-    borderRadius: 16,
+    borderRadius: 2,
     borderWidth: 1,
     padding: 20,
     marginBottom: 24,
     elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowColor: '#00FF41',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
   },
   cardTitle: {
     fontSize: 16,
@@ -365,7 +364,7 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 2,
     height: 44,
     paddingHorizontal: 12,
     fontSize: 14,
@@ -385,9 +384,14 @@ const styles = StyleSheet.create({
   },
   unlockBtn: {
     height: 44,
-    borderRadius: 10,
+    borderRadius: 2,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#00FF41',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 8,
+    elevation: 8,
   },
   unlockBtnText: {
     fontSize: 14,
@@ -396,7 +400,7 @@ const styles = StyleSheet.create({
   bioBtn: {
     width: 44,
     height: 44,
-    borderRadius: 10,
+    borderRadius: 2,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
