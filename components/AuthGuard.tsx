@@ -31,6 +31,13 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   // Stati per la creazione password
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Validazione password in tempo reale
+  const meetsLength = newPassword.length >= 8;
+  const meetsUppercase = /[A-Z]/.test(newPassword);
+  const meetsNumber = /[0-9]/.test(newPassword);
+  const meetsSpecial = /[!@#$%^&*()_+=\-[\]{};':"\\|,.<>/?~`]/.test(newPassword);
+  const allRequirementsMet = meetsLength && meetsUppercase && meetsNumber && meetsSpecial;
   
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isBiometricLoading, setIsBiometricLoading] = useState(false);
@@ -73,12 +80,8 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   };
 
   const handleCreatePassword = async () => {
-    if (!newPassword.trim()) {
-      setErrorMsg('La password non può essere vuota.');
-      return;
-    }
-    if (newPassword.length < 4) {
-      setErrorMsg('La password deve essere di almeno 4 caratteri.');
+    if (!allRequirementsMet) {
+      setErrorMsg('La password non soddisfa tutti i requisiti di sicurezza.');
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -151,7 +154,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
           <NerdLogo fontSize={hasPassword ? 22 : 18} />
           
           <View style={[styles.statusNode, { borderColor: currentTheme.border, backgroundColor: currentTheme.surface }]}>
-            <View style={[styles.statusDot, { backgroundColor: hasPassword ? '#f59e0b' : '#3b82f6' }]} />
+            <View style={[styles.statusDot, { backgroundColor: hasPassword ? '#00FF41' : '#ef4444' }]} />
             <Text style={[styles.statusText, { color: currentTheme.textPrimary }]}>
               {hasPassword ? 'Secured Sandbox' : 'Init Database...'}
             </Text>
@@ -202,6 +205,22 @@ export default function AuthGuard({ children }: AuthGuardProps) {
               ]}
             />
 
+            {/* Checklist requisiti master password */}
+            <View style={styles.checklistContainer}>
+              <Text style={[styles.checklistItem, { color: meetsLength ? '#00FF41' : '#444444' }]}>
+                {meetsLength ? '[x] Minimo 8 caratteri' : '[ ] Minimo 8 caratteri'}
+              </Text>
+              <Text style={[styles.checklistItem, { color: meetsUppercase ? '#00FF41' : '#444444' }]}>
+                {meetsUppercase ? '[x] Almeno una maiuscola' : '[ ] Almeno una maiuscola'}
+              </Text>
+              <Text style={[styles.checklistItem, { color: meetsNumber ? '#00FF41' : '#444444' }]}>
+                {meetsNumber ? '[x] Almeno un numero' : '[ ] Almeno un numero'}
+              </Text>
+              <Text style={[styles.checklistItem, { color: meetsSpecial ? '#00FF41' : '#444444' }]}>
+                {meetsSpecial ? '[x] Almeno un carattere speciale' : '[ ] Almeno un carattere speciale'}
+              </Text>
+            </View>
+
             {errorMsg && (
               <Text style={styles.errorText}>
                 ❌ {errorMsg}
@@ -209,12 +228,28 @@ export default function AuthGuard({ children }: AuthGuardProps) {
             )}
 
             <Pressable
+              disabled={!allRequirementsMet}
               onPress={handleCreatePassword}
-              style={[styles.unlockBtn, { backgroundColor: currentTheme.textPrimary, width: '100%', marginTop: 8 }]}
+              style={({ pressed }) => [
+                styles.unlockBtn, 
+                { 
+                  width: '100%', 
+                  marginTop: 8,
+                  backgroundColor: '#000000',
+                  borderColor: allRequirementsMet ? '#00FF41' : '#444444',
+                  borderWidth: 1,
+                },
+                allRequirementsMet && pressed && { backgroundColor: '#00FF41' }
+              ]}
             >
-              <Text style={[styles.unlockBtnText, { color: isDark ? '#000' : '#fff' }]}>
-                Inizializza Database Locale
-              </Text>
+              {({ pressed }) => (
+                <Text style={[
+                  styles.unlockBtnText, 
+                  { color: allRequirementsMet ? (pressed ? '#000000' : '#00FF41') : '#444444' }
+                ]}>
+                  [ INIZIALIZZA DATABASE LOCALE ]
+                </Text>
+              )}
             </Pressable>
           </View>
         ) : (
@@ -253,29 +288,46 @@ export default function AuthGuard({ children }: AuthGuardProps) {
             <View style={styles.actionsRow}>
               <Pressable
                 onPress={handlePasswordUnlock}
-                style={[styles.unlockBtn, { backgroundColor: currentTheme.textPrimary, flex: 1 }]}
+                style={({ pressed }) => [
+                  styles.unlockBtn, 
+                  { 
+                    flex: 1,
+                    backgroundColor: '#000000',
+                    borderColor: '#00FF41',
+                    borderWidth: 1,
+                  },
+                  pressed && { backgroundColor: '#00FF41' }
+                ]}
               >
-                <Text style={[styles.unlockBtnText, { color: isDark ? '#000' : '#fff' }]}>
-                  Esegui Decrittografia (Sblocca)
-                </Text>
+                {({ pressed }) => (
+                  <Text style={[styles.unlockBtnText, { color: pressed ? '#000000' : '#00FF41' }]}>
+                    [ ESEGUI DECRITTOGRAFIA ]
+                  </Text>
+                )}
               </Pressable>
 
               {!isWeb && (
                 <Pressable
                   onPress={handleBiometricUnlock}
                   disabled={isBiometricLoading}
-                  style={[
+                  style={({ pressed }) => [
                     styles.bioBtn, 
                     { 
-                      borderColor: currentTheme.border, 
-                      backgroundColor: isDark ? '#1a2730' : '#e0f2fe' 
-                    }
+                      borderColor: '#00FF41', 
+                      backgroundColor: '#000000',
+                      borderWidth: 1,
+                    },
+                    pressed && { backgroundColor: '#00FF41' }
                   ]}
                 >
-                  {isBiometricLoading ? (
-                    <ActivityIndicator size="small" color="#0284c7" />
-                  ) : (
-                    <Text style={styles.bioIcon}>🧬</Text>
+                  {({ pressed }) => (
+                    isBiometricLoading ? (
+                      <ActivityIndicator size="small" color="#00FF41" />
+                    ) : (
+                      <Text style={[styles.bioIcon, { color: pressed ? '#000000' : '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold' }]}>
+                        [BIO]
+                      </Text>
+                    )
                   )}
                 </Pressable>
               )}
@@ -326,21 +378,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 8,
+    borderRadius: 0,
     borderWidth: 1,
   },
   statusDot: {
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: 0,
     marginRight: 6,
   },
   statusText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   authCard: {
-    borderRadius: 2,
+    borderRadius: 0,
     borderWidth: 1,
     padding: 20,
     marginBottom: 24,
@@ -352,24 +405,27 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
     marginBottom: 6,
     textAlign: 'center',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   cardDescription: {
     fontSize: 12,
     lineHeight: 16,
     textAlign: 'center',
     marginBottom: 20,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   input: {
     borderWidth: 1,
-    borderRadius: 2,
+    borderRadius: 0,
     height: 44,
     paddingHorizontal: 12,
     fontSize: 14,
     marginBottom: 12,
     textAlign: 'center',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   errorText: {
     color: '#ef4444',
@@ -377,6 +433,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     marginBottom: 12,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   actionsRow: {
     flexDirection: 'row',
@@ -384,7 +441,7 @@ const styles = StyleSheet.create({
   },
   unlockBtn: {
     height: 44,
-    borderRadius: 2,
+    borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#00FF41',
@@ -395,29 +452,47 @@ const styles = StyleSheet.create({
   },
   unlockBtnText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   bioBtn: {
-    width: 44,
+    width: 60,
     height: 44,
-    borderRadius: 2,
+    borderRadius: 0,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   bioIcon: {
-    fontSize: 20,
+    fontSize: 12,
   },
   loadingText: {
     fontSize: 11,
     textAlign: 'center',
     marginTop: 12,
     fontStyle: 'italic',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   footerText: {
     fontSize: 11,
     lineHeight: 15,
     textAlign: 'center',
     paddingHorizontal: 10,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  checklistContainer: {
+    marginBottom: 16,
+    alignSelf: 'stretch',
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#1A1A1A',
+    backgroundColor: '#000000',
+    borderRadius: 0,
+  },
+  checklistItem: {
+    fontSize: 12,
+    lineHeight: 18,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontWeight: 'bold',
   },
 });

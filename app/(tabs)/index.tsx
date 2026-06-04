@@ -897,8 +897,6 @@ export default function DashboardScreen() {
   });
 
   const renderCard = ({ item }: { item: NoteItem }) => {
-    const cardAccent = isDark ? item.pastelAccent.dark : item.pastelAccent.light;
-    
     return (
       <TouchableOpacity 
         onPress={() => {
@@ -919,7 +917,7 @@ export default function DashboardScreen() {
           { 
             backgroundColor: currentTheme.surface, 
             borderColor: currentTheme.border,
-            borderLeftColor: cardAccent,
+            borderLeftColor: '#00FF41',
             opacity: isUnlocked ? 1 : 0.75,
           }
         ]}
@@ -927,14 +925,19 @@ export default function DashboardScreen() {
         {/* Card Header: Stato e Data */}
         <View style={styles.cardHeader}>
           <View style={styles.cryptoBadge}>
-            <Text style={[styles.cryptoIcon, { color: isUnlocked ? '#10b981' : '#f59e0b' }]}>
-              {isUnlocked ? '🔓' : '🔒'}
+            <Text style={{ 
+              fontSize: 10, 
+              color: isUnlocked ? '#00FF41' : '#ef4444', 
+              fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+              fontWeight: 'bold' 
+            }}>
+              {isUnlocked ? '[ OPN ]' : '[ LCK ]'}
             </Text>
-            <Text style={[styles.cryptoText, { color: currentTheme.textSecondary }]}>
+            <Text style={[styles.cryptoText, { color: currentTheme.textSecondary, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold' }]}>
               {isUnlocked ? (item.isAnalyzing ? 'CRITTOGRAFATO' : 'DECIFRATO') : 'AES-256'}
             </Text>
           </View>
-          <Text style={[styles.cardDate, { color: currentTheme.textSecondary }]}>{item.date}</Text>
+          <Text style={[styles.cardDate, { color: currentTheme.textSecondary, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>{item.date}</Text>
         </View>
 
         {/* Card Title */}
@@ -947,7 +950,7 @@ export default function DashboardScreen() {
 
         {/* Card Excerpt */}
         <Text 
-          style={[styles.cardExcerpt, { color: currentTheme.textSecondary }]} 
+          style={[styles.cardExcerpt, { color: currentTheme.textSecondary, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]} 
           numberOfLines={4}
         >
           {item.excerpt}
@@ -961,10 +964,10 @@ export default function DashboardScreen() {
                 key={att.id} 
                 onPress={() => handleOpenLink(att.uri)}
                 activeOpacity={0.7}
-                style={[styles.cardAttachmentChip, { backgroundColor: isDark ? '#1e293b' : '#e0f2fe' }]}
+                style={[styles.cardAttachmentChip, { backgroundColor: '#000000', borderColor: '#00FF41', borderWidth: 1, borderRadius: 0 }]}
               >
-                <Text style={[styles.cardAttachmentChipText, { color: isDark ? '#cbd5e1' : '#0f766e' }]} numberOfLines={1}>
-                  🔗 {att.title || att.uri}
+                <Text style={[styles.cardAttachmentChipText, { color: '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold' }]} numberOfLines={1}>
+                  [ LNK ] {att.title || att.uri}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -974,9 +977,9 @@ export default function DashboardScreen() {
         {/* Card Footer: AI Tags & Sync Status */}
         <View style={styles.cardFooter}>
           {item.isAnalyzing ? (
-            <View style={[styles.tagBadge, { backgroundColor: isDark ? '#27272a' : '#f4f4f5', flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
-              <Text style={[styles.tagText, { color: currentTheme.textSecondary }]}>
-                🔄 IA sta analizzando...
+            <View style={[styles.tagBadge, { borderColor: '#00FF41', borderWidth: 1, borderRadius: 0, backgroundColor: '#000000', flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+              <Text style={[styles.tagText, { color: '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold' }]}>
+                [ AI ] Analisi in corso...
               </Text>
             </View>
           ) : (
@@ -988,16 +991,16 @@ export default function DashboardScreen() {
                     key={index} 
                     style={[
                       styles.tagBadge, 
-                      { backgroundColor: cardAccent }
+                      { borderColor: '#00FF41', borderWidth: 1, borderRadius: 0, backgroundColor: '#000000' }
                     ]}
                   >
                     <Text 
                       style={[
                         styles.tagText, 
-                        { color: isDark ? '#a1a1aa' : '#52525b' }
+                        { color: '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold' }
                       ]}
                     >
-                      ✦ {isUnlocked ? tag : maskText(tag)}
+                      {`> ${isUnlocked ? tag : maskText(tag)}`}
                     </Text>
                   </View>
                 ))}
@@ -1007,18 +1010,18 @@ export default function DashboardScreen() {
               {isUnlocked && (
                 <View style={styles.syncContainer}>
                   {item.syncStatus === 'syncing' && (
-                    <Text style={[styles.syncText, { color: currentTheme.textSecondary }]}>
-                      ☁️ Sincronizzazione...
+                    <Text style={[styles.syncText, { color: currentTheme.textSecondary, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>
+                      [SYNC...]
                     </Text>
                   )}
                   {item.syncStatus === 'synced' && (
-                    <Text style={[styles.syncText, { color: '#10b981' }]}>
-                      ✔ Salvato su {getCloudName(cloudConfig?.provider)}
+                    <Text style={[styles.syncText, { color: '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>
+                      [OK] Cloud ({getCloudName(cloudConfig?.provider)})
                     </Text>
                   )}
                   {item.syncStatus === 'local_only' && (
-                    <Text style={[styles.syncText, { color: isDark ? '#a1a1aa' : '#71717a' }]}>
-                      ⚠️ Solo locale
+                    <Text style={[styles.syncText, { color: isDark ? '#a1a1aa' : '#71717a', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>
+                      [!] Solo locale
                     </Text>
                   )}
                 </View>
@@ -1033,24 +1036,24 @@ export default function DashboardScreen() {
   if (isGoogleAuthenticated && driveUnlockState === 'request_unlock') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: currentTheme.background, justifyContent: 'center', alignItems: 'center', padding: 20 }]} edges={['top', 'bottom']}>
-        <View style={[styles.modalContent, { backgroundColor: currentTheme.surface, borderColor: currentTheme.border, alignSelf: 'center', width: '100%', maxWidth: 400 }]}>
-          <Text style={[styles.modalTitle, { color: currentTheme.textPrimary, textAlign: 'center', fontSize: 18, marginBottom: 12 }]}>Ripristino Database da Google Drive</Text>
-          <Text style={[styles.inputLabel, { color: currentTheme.textSecondary, marginBottom: 16, textAlign: 'center', lineHeight: 18 }]}>
+        <View style={[styles.modalContent, { backgroundColor: currentTheme.surface, borderColor: '#00FF41', borderWidth: 1, alignSelf: 'center', width: '100%', maxWidth: 400, borderRadius: 0 }]}>
+          <Text style={[styles.modalTitle, { color: '#00FF41', textAlign: 'center', fontSize: 18, marginBottom: 12, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold' }]}>Ripristino Database da Google Drive</Text>
+          <Text style={[styles.inputLabel, { color: currentTheme.textSecondary, marginBottom: 16, textAlign: 'center', lineHeight: 18, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>
             Rilevato archivio crittografato su cloud. Fornire Master Password per decifrare i record.
           </Text>
           <TextInput
             placeholder="Inserisci Master Password..."
-            placeholderTextColor={currentTheme.textSecondary}
+            placeholderTextColor="#008021"
             value={drivePassword}
             onChangeText={setDrivePassword}
             secureTextEntry
             style={[
               styles.modalInput,
-              { color: currentTheme.textPrimary, borderColor: currentTheme.border, backgroundColor: currentTheme.background, textAlign: 'center', height: 44, marginBottom: 12 }
+              { color: '#00FF41', borderColor: '#00FF41', backgroundColor: currentTheme.background, textAlign: 'center', height: 44, marginBottom: 12, borderRadius: 0, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }
             ]}
           />
           {driveUnlockError && (
-            <Text style={{ color: '#ef4444', textAlign: 'center', marginBottom: 12, fontWeight: '600', fontSize: 13 }}>
+            <Text style={{ color: '#ef4444', textAlign: 'center', marginBottom: 12, fontWeight: 'bold', fontSize: 13, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
               {driveUnlockError}
             </Text>
           )}
@@ -1080,9 +1083,25 @@ export default function DashboardScreen() {
                 alert('PASSWORD ERRATA\nLa password inserita non è valida per decifrare questo backup.');
               }
             }}
-            style={[styles.saveButton, { backgroundColor: currentTheme.textPrimary, marginTop: 8 }]}
+            style={({ pressed }) => [
+              styles.saveButton,
+              {
+                borderColor: '#00FF41',
+                backgroundColor: pressed ? '#00FF41' : '#000000',
+                borderWidth: 1,
+                borderRadius: 0,
+                width: '100%',
+                height: 44,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }
+            ]}
           >
-            <Text style={[styles.saveButtonText, { color: isDark ? '#000' : '#fff' }]}>Decifra e Ripristina</Text>
+            {({ pressed }) => (
+              <Text style={{ color: pressed ? '#000000' : '#00FF41', fontWeight: 'bold', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
+                [ DECIFRA E RIPRISTINA ]
+              </Text>
+            )}
           </Pressable>
         </View>
       </SafeAreaView>
@@ -1095,13 +1114,21 @@ export default function DashboardScreen() {
       <View style={[styles.header, { borderColor: currentTheme.border }]}>
         <View>
           <NerdLogo fontSize={20} />
-          <Text style={[styles.headerSubtitle, { color: currentTheme.textSecondary }]}>spazio_di_lavoro / locale</Text>
+          <Text style={{ 
+            fontSize: 12, 
+            fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', 
+            color: '#00FF41', 
+            fontWeight: 'bold',
+            marginTop: 4 
+          }}>
+            [ JOURNAL ]
+          </Text>
         </View>
         
         {/* Cryptographic Node Status */}
         <View style={[styles.statusNode, { borderColor: currentTheme.border, backgroundColor: currentTheme.surface }]}>
-          <View style={[styles.statusDot, { backgroundColor: isUnlocked ? '#10b981' : '#ef4444' }]} />
-          <Text style={[styles.statusText, { color: currentTheme.textPrimary }]}>
+          <View style={[styles.statusDot, { backgroundColor: isUnlocked ? '#00FF41' : '#ef4444' }]} />
+          <Text style={[styles.statusText, { color: currentTheme.textPrimary, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold' }]}>
             {isUnlocked ? 'Chiave Derivata' : 'Zero-Knowledge'}
           </Text>
         </View>
@@ -1113,12 +1140,14 @@ export default function DashboardScreen() {
           <View style={[
             styles.warningBadge, 
             { 
-              backgroundColor: isDark ? '#3d2516' : '#fff3e0', 
-              borderColor: isDark ? '#5c3e21' : '#ffe0b2' 
+              backgroundColor: '#000000', 
+              borderColor: '#ef4444',
+              borderRadius: 0,
+              borderWidth: 1,
             }
           ]}>
-            <Text style={[styles.warningText, { color: isDark ? '#ffcc80' : '#e65100' }]}>
-              🔒 Autenticazione richiesta. Sbloccare la sessione decifrando il database locale.
+            <Text style={[styles.warningText, { color: '#ef4444', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold' }]}>
+              [ LCK ] Autenticazione richiesta. Sbloccare la sessione decifrando il database locale.
             </Text>
           </View>
         </View>
@@ -1127,11 +1156,18 @@ export default function DashboardScreen() {
       {/* Workspace Controls: Search & Tabs */}
       <View style={styles.controlsContainer}>
         {/* Academic Style Search Bar */}
-        <View style={[styles.searchBar, { backgroundColor: currentTheme.surface, borderColor: currentTheme.border }]}>
-          <Text style={[styles.searchIcon, { color: currentTheme.textSecondary }]}>🔍</Text>
+        <View style={[styles.searchBar, { backgroundColor: '#000000', borderColor: '#00FF41', borderWidth: 1, borderRadius: 0 }]}>
+          <Text style={{ 
+            color: '#00FF41', 
+            fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', 
+            fontWeight: 'bold',
+            marginRight: 6 
+          }}>
+            {`>_ `}
+          </Text>
           <TextInput
             placeholder={isUnlocked ? (selectedFilter === 'Secondo Cervello' ? "Invia query alla Rete Neurale Gemini..." : "Filtra record per tag/chiave...") : "Dispositivo bloccato. Eseguire login..."}
-            placeholderTextColor={currentTheme.textSecondary}
+            placeholderTextColor="#008021"
             value={selectedFilter === 'Secondo Cervello' ? ragQuery : searchQuery}
             onChangeText={(text) => {
               if (selectedFilter === 'Secondo Cervello') {
@@ -1151,7 +1187,7 @@ export default function DashboardScreen() {
                 handleRAGSearch(ragQuery);
               }
             }}
-            style={[styles.searchInput, { color: currentTheme.textPrimary }]}
+            style={[styles.searchInput, { color: '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}
           />
           {((selectedFilter === 'Secondo Cervello' ? ragQuery : searchQuery).trim().length > 0) && (
             <TouchableOpacity 
@@ -1159,7 +1195,7 @@ export default function DashboardScreen() {
               style={styles.clearSearchBtn}
               activeOpacity={0.7}
             >
-              <Text style={{ color: currentTheme.textSecondary, fontSize: 18, fontWeight: '600' }}>×</Text>
+              <Text style={{ color: '#ef4444', fontSize: 14, fontWeight: 'bold', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>[ x ]</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -1173,35 +1209,33 @@ export default function DashboardScreen() {
                 key={tab}
                 onPress={() => isUnlocked && setSelectedFilter(tab)}
                 disabled={!isUnlocked}
-                style={[
+                style={({ pressed }) => [
                   styles.tabButton,
                   {
-                    backgroundColor: '#1A1A1A',
-                    borderColor: '#333333',
-                  },
-                  isActive && { 
-                    backgroundColor: '#0A0A0A',
-                    borderColor: '#00FF41',
-                    shadowColor: '#00FF41',
-                    shadowOffset: { width: 0, height: 0 },
-                    shadowOpacity: 0.6,
-                    shadowRadius: 6,
-                    elevation: 4,
+                    backgroundColor: pressed ? '#00FF41' : '#000000',
+                    borderColor: pressed ? '#00FF41' : (isActive ? '#00FF41' : '#333333'),
+                    borderWidth: 1,
+                    borderRadius: 0,
                   },
                   !isUnlocked && { opacity: 0.5 }
                 ]}
               >
-                <Text 
-                  style={[
-                    styles.tabButtonText, 
-                    { 
-                      color: isActive ? '#00FF41' : '#E0E0E0',
-                      fontWeight: isActive ? '600' : '400'
-                    }
-                  ]}
-                >
-                  {tab}
-                </Text>
+                {({ pressed }) => (
+                  <Text 
+                    style={[
+                      styles.tabButtonText, 
+                      { 
+                        color: pressed ? '#000000' : (isActive ? '#00FF41' : '#888888'),
+                        fontWeight: 'bold',
+                        fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+                      }
+                    ]}
+                  >
+                    {tab === 'Tutti' && '[ TUTTI ]'}
+                    {tab === 'Secondo Cervello' && '[ CERVELLO ]'}
+                    {tab === 'Preferiti' && '[ PREFERITI ]'}
+                  </Text>
+                )}
               </Pressable>
             );
           })}
@@ -1216,7 +1250,7 @@ export default function DashboardScreen() {
           return (
             <View style={styles.ragResponseWrapper}>
               <View style={styles.ragHeaderTitleRow}>
-                <Text style={styles.ragHeaderTitle}>🧠 QUERY RAG ESEGUITA</Text>
+                <Text style={styles.ragHeaderTitle}>[ RAG ] QUERY RAG ESEGUITA</Text>
                 {isRAGLoading && <ActivityIndicator size="small" color="#00FF41" />}
               </View>
               
@@ -1227,7 +1261,7 @@ export default function DashboardScreen() {
               )}
               
               {!isRAGLoading && (
-                <Text style={[styles.ragContextTitle, { color: currentTheme.textSecondary }]}>
+                <Text style={[styles.ragContextTitle, { color: currentTheme.textSecondary, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>
                   Appunti usati come contesto:
                 </Text>
               )}
@@ -1240,15 +1274,15 @@ export default function DashboardScreen() {
             /* Stato Inattivo: Griglia di Macro-Tag */
             <ScrollView contentContainerStyle={styles.insightsDashboardContainer} showsVerticalScrollIndicator={false}>
               <View style={styles.insightsDashboard}>
-                <Text style={[styles.insightsTitle, { color: currentTheme.textPrimary }]}>
+                <Text style={[styles.insightsTitle, { color: '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold' }]}>
                   {'> '}SECONDO_CERVELLO
                 </Text>
-                <Text style={[styles.insightsDesc, { color: currentTheme.textSecondary }]}>
+                <Text style={[styles.insightsDesc, { color: currentTheme.textSecondary, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>
                   Rete Neurale Gemini in attesa di input. Elaborazione dati attiva. Esegui query RAG locale per estrarre log incrociati o seleziona un tag di sistema.
                 </Text>
                 
                 {tagList.length === 0 ? (
-                  <View style={[styles.emptyInsights, { borderColor: currentTheme.border, backgroundColor: currentTheme.surface }]}>
+                  <View style={[styles.emptyInsights, { borderColor: '#ef4444', borderWidth: 1, backgroundColor: '#000000', borderRadius: 0 }]}>
                     <Text style={{ color: currentTheme.textSecondary, textAlign: 'center', fontSize: 13, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
                       Nessun tag di sistema rilevato. Analisi automatica del payload non ancora eseguita.
                     </Text>
@@ -1256,10 +1290,6 @@ export default function DashboardScreen() {
                 ) : (
                   <View style={styles.tagGrid}>
                     {tagList.map((tag) => {
-                      const colors = getTagColor(tag.name);
-                      const tagBg = isDark ? colors.dark : colors.light;
-                      const tagBorder = currentTheme.border;
-                      
                       return (
                         <TouchableOpacity
                           key={tag.name}
@@ -1268,17 +1298,21 @@ export default function DashboardScreen() {
                           style={[
                             styles.tagCard,
                             {
-                              backgroundColor: '#1A1A1A',
-                              borderColor: currentTheme.border,
+                              backgroundColor: '#000000',
+                              borderColor: '#00FF41',
+                              borderWidth: 1,
+                              borderRadius: 0,
                             }
                           ]}
                         >
-                          <Text style={[styles.tagCardIcon, { color: currentTheme.textPrimary }]}>✦</Text>
-                          <Text style={[styles.tagCardName, { color: currentTheme.textPrimary }]} numberOfLines={2}>
+                          <Text style={{ color: '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold', marginBottom: 6 }}>
+                            {`>_`}
+                          </Text>
+                          <Text style={{ color: '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold', fontSize: 13, marginBottom: 4 }} numberOfLines={2}>
                             {tag.name}
                           </Text>
-                          <Text style={[styles.tagCardCount, { color: isDark ? '#a1a1aa' : '#71717a' }]}>
-                            {tag.count} {tag.count === 1 ? 'nota' : 'note'}
+                          <Text style={{ color: '#888888', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: 10 }}>
+                            {`[ ${tag.count} log ]`}
                           </Text>
                         </TouchableOpacity>
                       );
@@ -1313,16 +1347,27 @@ export default function DashboardScreen() {
       {/* FAB: Sbloccato apre il modal di creazione nota */}
       <Pressable 
         onPress={() => isUnlocked && setIsModalVisible(true)}
-        style={[
+        style={({ pressed }) => [
           styles.fab, 
           { 
-            backgroundColor: currentTheme.textPrimary,
-            opacity: isUnlocked ? 1 : 0.5
+            opacity: isUnlocked ? 1 : 0.5,
+            backgroundColor: pressed ? '#00FF41' : '#1A1A1A',
+            borderColor: '#00FF41',
+            borderWidth: 1,
           }
         ]}
         disabled={!isUnlocked}
       >
-        <Text style={[styles.fabText, { color: isDark ? '#000' : '#fff' }]}>+</Text>
+        {({ pressed }) => (
+          <Text style={{ 
+            fontSize: 16, 
+            fontWeight: 'bold', 
+            fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', 
+            color: pressed ? '#000000' : '#00FF41' 
+          }}>
+            [ + ]
+          </Text>
+        )}
       </Pressable>
 
       {/* Modal di Creazione Nuova Nota (Stile NotebookLM) */}
@@ -1333,42 +1378,54 @@ export default function DashboardScreen() {
         onRequestClose={() => setIsModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: currentTheme.surface, borderColor: currentTheme.border }]}>
-            <Text style={[styles.modalTitle, { color: currentTheme.textPrimary }]}>Inizializza Nuovo Log</Text>
+          <View style={[styles.modalContent, { backgroundColor: currentTheme.surface, borderColor: '#00FF41', borderWidth: 1, borderRadius: 0 }]}>
+            <Text style={[styles.modalTitle, { color: '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold' }]}>Inizializza Nuovo Log</Text>
             
             <View style={styles.titleInputContainer}>
               <TextInput
                 placeholder="Identificativo del log (Titolo)..."
-                placeholderTextColor={currentTheme.textSecondary}
+                placeholderTextColor="#008021"
                 value={newNoteTitle}
                 onChangeText={setNewNoteTitle}
                 style={[
                   styles.modalInput, 
-                  { flex: 1, marginBottom: 0, color: currentTheme.textPrimary, borderColor: currentTheme.border, backgroundColor: currentTheme.background }
+                  { flex: 1, marginBottom: 0, color: '#00FF41', borderColor: '#00FF41', backgroundColor: currentTheme.background, borderRadius: 0, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }
                 ]}
               />
-              <TouchableOpacity
+              <Pressable
                 onPress={handleGenerateNewTitle}
                 disabled={(newNoteContent.trim() === '' && newNoteAttachments.length === 0) || isNewTitleLoading}
-                style={[styles.generateTitleBtn, { borderColor: currentTheme.border, backgroundColor: currentTheme.surface }]}
+                style={({ pressed }) => [
+                  styles.generateTitleBtn,
+                  { 
+                    borderColor: '#00FF41', 
+                    backgroundColor: pressed ? '#00FF41' : '#000000',
+                    borderWidth: 1,
+                    borderRadius: 0,
+                  }
+                ]}
               >
-                {isNewTitleLoading ? (
-                  <ActivityIndicator size="small" color={currentTheme.textPrimary} />
-                ) : (
-                  <Text style={{ fontSize: 14 }}>✨</Text>
+                {({ pressed }) => (
+                  isNewTitleLoading ? (
+                    <ActivityIndicator size="small" color={pressed ? '#000000' : '#00FF41'} />
+                  ) : (
+                    <Text style={{ color: pressed ? '#000000' : '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold', fontSize: 11 }}>
+                      [AI]
+                    </Text>
+                  )
                 )}
-              </TouchableOpacity>
+              </Pressable>
             </View>
 
-            <Text style={[styles.inputLabel, { color: currentTheme.textSecondary, marginBottom: 6 }]}>Payload dati (Contenuto)</Text>
+            <Text style={[styles.inputLabel, { color: '#00FF41', marginBottom: 6, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold' }]}>Payload dati (Contenuto)</Text>
 
             {isTranscribing ? (
-              <View style={[styles.transcribingContainer, { borderColor: currentTheme.border, backgroundColor: currentTheme.background }]}>
-                <Text style={{ fontSize: 22, marginBottom: 8 }}>🔄</Text>
-                <Text style={[styles.transcribingText, { color: currentTheme.textPrimary }]}>
-                  🔄 Streaming Audio...
+              <View style={[styles.transcribingContainer, { borderColor: '#00FF41', backgroundColor: '#000000', borderRadius: 0, borderWidth: 1 }]}>
+                <Text style={{ fontSize: 14, color: '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold', marginBottom: 8 }}>[ AI ]</Text>
+                <Text style={[styles.transcribingText, { color: '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold' }]}>
+                  Streaming Audio...
                 </Text>
-                <Text style={[styles.transcribingSubtext, { color: currentTheme.textSecondary }]}>
+                <Text style={[styles.transcribingSubtext, { color: currentTheme.textSecondary, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>
                   Analisi spettrografica e trascrizione in corso...
                 </Text>
               </View>
@@ -1376,7 +1433,7 @@ export default function DashboardScreen() {
               <View style={styles.micInputContainer}>
                 <TextInput
                   placeholder="Inizializza payload di log. Immettere dati da cifrare..."
-                  placeholderTextColor={currentTheme.textSecondary}
+                  placeholderTextColor="#008021"
                   value={newNoteContent}
                   onChangeText={setNewNoteContent}
                   multiline={true}
@@ -1384,47 +1441,61 @@ export default function DashboardScreen() {
                   style={[
                     styles.modalInput, 
                     styles.modalInputArea,
-                    { flex: 1, marginBottom: 0, color: currentTheme.textPrimary, borderColor: currentTheme.border, backgroundColor: currentTheme.background }
+                    { flex: 1, marginBottom: 0, color: '#00FF41', borderColor: '#00FF41', backgroundColor: currentTheme.background, borderRadius: 0, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }
                   ]}
                 />
-                <TouchableOpacity 
-                  activeOpacity={0.6}
+                <Pressable 
                   onPress={handleMicClick}
-                  style={[
+                  style={({ pressed }) => [
                     styles.micSidebarBtn, 
                     { 
-                      backgroundColor: isRecording 
-                        ? (isDark ? '#4c1d1d' : '#fee2e2') 
-                        : (micFeedback ? (isDark ? '#222c26' : '#e8f5e9') : (isDark ? '#1a2730' : '#e0f2fe')),
-                      borderColor: isRecording ? '#ef4444' : currentTheme.border,
+                      backgroundColor: pressed 
+                        ? (isRecording ? '#ef4444' : '#00FF41') 
+                        : '#000000',
+                      borderColor: isRecording ? '#ef4444' : '#00FF41',
+                      borderWidth: 1,
+                      borderRadius: 0,
                     }
                   ]}
                 >
-                  <Text style={{ fontSize: 20 }}>
-                    {isRecording ? '🔴' : '🎙️'}
-                  </Text>
-                  {isRecording && (
-                    <Text style={[styles.micSidebarLabel, { color: '#ef4444' }]}>Rec</Text>
+                  {({ pressed }) => (
+                    isRecording ? (
+                      <View style={{ alignItems: 'center' }}>
+                        <Text style={{ color: pressed ? '#000000' : '#ef4444', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold', fontSize: 12 }}>[</Text>
+                        <Text style={{ color: pressed ? '#000000' : '#ef4444', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold', fontSize: 12 }}>R</Text>
+                        <Text style={{ color: pressed ? '#000000' : '#ef4444', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold', fontSize: 12 }}>E</Text>
+                        <Text style={{ color: pressed ? '#000000' : '#ef4444', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold', fontSize: 12 }}>C</Text>
+                        <Text style={{ color: pressed ? '#000000' : '#ef4444', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold', fontSize: 12 }}>]</Text>
+                      </View>
+                    ) : (
+                      <View style={{ alignItems: 'center' }}>
+                        <Text style={{ color: pressed ? '#000000' : '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold', fontSize: 12 }}>[</Text>
+                        <Text style={{ color: pressed ? '#000000' : '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold', fontSize: 12 }}>M</Text>
+                        <Text style={{ color: pressed ? '#000000' : '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold', fontSize: 12 }}>I</Text>
+                        <Text style={{ color: pressed ? '#000000' : '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold', fontSize: 12 }}>C</Text>
+                        <Text style={{ color: pressed ? '#000000' : '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold', fontSize: 12 }}>]</Text>
+                      </View>
+                    )
                   )}
-                </TouchableOpacity>
+                </Pressable>
               </View>
             )}
 
             {/* Sezione Allegati Link in Creazione */}
-            <View style={[styles.modalLinkSection, { borderColor: currentTheme.border }]}>
-              <Text style={[styles.inputLabel, { color: currentTheme.textSecondary, marginBottom: 6 }]}>
+            <View style={[styles.modalLinkSection, { borderColor: '#00FF41' }]}>
+              <Text style={[styles.inputLabel, { color: '#00FF41', marginBottom: 6, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold' }]}>
                 Allegati (Link Esterni)
               </Text>
               
               {newNoteAttachments.length > 0 && (
                 <View style={styles.modalAttachmentsContainer}>
                   {newNoteAttachments.map((att) => (
-                    <View key={att.id} style={[styles.modalAttachmentChip, { backgroundColor: isDark ? '#1f2937' : '#f3f4f6' }]}>
-                      <Text style={[styles.modalAttachmentChipText, { color: currentTheme.textPrimary }]} numberOfLines={1}>
-                        🔗 {att.title || att.uri}
+                    <View key={att.id} style={[styles.modalAttachmentChip, { borderColor: '#00FF41', borderWidth: 1, backgroundColor: '#000000', borderRadius: 0 }]}>
+                      <Text style={[styles.modalAttachmentChipText, { color: '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]} numberOfLines={1}>
+                        [ LNK ] {att.title || att.uri}
                       </Text>
-                      <TouchableOpacity onPress={() => removeLinkFromNewNote(att.id)}>
-                        <Text style={{ color: '#ef4444', fontWeight: '700', paddingHorizontal: 4 }}>×</Text>
+                      <TouchableOpacity onPress={() => removeLinkFromNewNote(att.id)} style={{ marginLeft: 6 }}>
+                        <Text style={{ color: '#ef4444', fontWeight: 'bold', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>[x]</Text>
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -1434,46 +1505,76 @@ export default function DashboardScreen() {
               <View style={styles.addLinkFormRow}>
                 <TextInput
                   placeholder="Titolo..."
-                  placeholderTextColor={currentTheme.textSecondary}
+                  placeholderTextColor="#008021"
                   value={newLinkTitle}
                   onChangeText={setNewLinkTitle}
                   style={[
                     styles.linkInput,
-                    { flex: 1, color: currentTheme.textPrimary, borderColor: currentTheme.border, backgroundColor: currentTheme.background }
+                    { flex: 1, color: '#00FF41', borderColor: '#00FF41', backgroundColor: currentTheme.background, borderRadius: 0, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }
                   ]}
                 />
                 <TextInput
                   placeholder="https://..."
-                  placeholderTextColor={currentTheme.textSecondary}
+                  placeholderTextColor="#008021"
                   value={newLinkUrl}
                   onChangeText={setNewLinkUrl}
                   style={[
                     styles.linkInput,
-                    { flex: 2, color: currentTheme.textPrimary, borderColor: currentTheme.border, backgroundColor: currentTheme.background }
+                    { flex: 2, color: '#00FF41', borderColor: '#00FF41', backgroundColor: currentTheme.background, borderRadius: 0, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }
                   ]}
                 />
-                <TouchableOpacity 
+                <Pressable 
                   onPress={addLinkToNewNote}
-                  style={[styles.addLinkMiniBtn, { backgroundColor: currentTheme.textPrimary }]}
+                  style={({ pressed }) => [
+                    styles.addLinkMiniBtn, 
+                    { 
+                      borderColor: '#00FF41', 
+                      backgroundColor: pressed ? '#00FF41' : '#000000',
+                      borderWidth: 1,
+                      borderRadius: 0,
+                    }
+                  ]}
                 >
-                  <Text style={{ color: isDark ? '#000' : '#fff', fontWeight: '700' }}>+</Text>
-                </TouchableOpacity>
+                  {({ pressed }) => (
+                    <Text style={{ color: pressed ? '#000000' : '#00FF41', fontWeight: 'bold', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>[+]</Text>
+                  )}
+                </Pressable>
               </View>
             </View>
 
             <View style={styles.modalActions}>
               <Pressable 
                 onPress={() => setIsModalVisible(false)}
-                style={[styles.modalBtn, styles.modalBtnCancel, { borderColor: currentTheme.border }]}
+                style={({ pressed }) => [
+                  styles.modalBtn, 
+                  {
+                    borderColor: '#ef4444',
+                    backgroundColor: pressed ? '#ef4444' : '#000000',
+                  }
+                ]}
               >
-                <Text style={[styles.modalBtnCancelText, { color: currentTheme.textSecondary }]}>Annulla</Text>
+                {({ pressed }) => (
+                  <Text style={{ color: pressed ? '#000000' : '#ef4444', fontWeight: 'bold', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
+                    [ Annulla ]
+                  </Text>
+                )}
               </Pressable>
 
               <Pressable 
                 onPress={handleCreateNote}
-                style={[styles.modalBtn, styles.modalBtnSave, { backgroundColor: currentTheme.textPrimary }]}
+                style={({ pressed }) => [
+                  styles.modalBtn, 
+                  {
+                    borderColor: '#00FF41',
+                    backgroundColor: pressed ? '#00FF41' : '#000000',
+                  }
+                ]}
               >
-                <Text style={[styles.modalBtnSaveText, { color: isDark ? '#000' : '#fff' }]}>Cifra e Salva</Text>
+                {({ pressed }) => (
+                  <Text style={{ color: pressed ? '#000000' : '#00FF41', fontWeight: 'bold', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
+                    [ Cifra e Salva ]
+                  </Text>
+                )}
               </Pressable>
             </View>
           </View>
@@ -1494,27 +1595,51 @@ export default function DashboardScreen() {
               onPress={() => setIsViewModalVisible(false)}
               style={styles.fsHeaderBack}
             >
-              <Text style={[styles.fsHeaderBackText, { color: currentTheme.textPrimary }]}>← Journal</Text>
+              <Text style={[styles.fsHeaderBackText, { color: '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold' }]}>{"[ < LOGS ]"}</Text>
             </TouchableOpacity>
             
             <View style={styles.fsHeaderActions}>
               {selectedNote && (
-                <TouchableOpacity 
+                <Pressable 
                   onPress={() => toggleFavorite(selectedNote.id)}
-                  style={[styles.fsFavToggle, { borderColor: currentTheme.border, backgroundColor: currentTheme.surface }]}
+                  style={({ pressed }) => [
+                    styles.terminalButtonInline, 
+                    { 
+                      borderColor: selectedNote.isFavorite ? '#00FF41' : '#888888', 
+                      backgroundColor: pressed ? (selectedNote.isFavorite ? '#00FF41' : '#888888') : '#000000',
+                    }
+                  ]}
                 >
-                  <Text style={{ fontSize: 18, color: selectedNote.isFavorite ? '#fbbf24' : currentTheme.textSecondary }}>
-                    {selectedNote.isFavorite ? '★' : '☆'}
-                  </Text>
-                </TouchableOpacity>
+                  {({ pressed }) => (
+                    <Text style={[
+                      styles.terminalButtonInlineText,
+                      { color: pressed ? '#000000' : (selectedNote.isFavorite ? '#00FF41' : '#888888') }
+                    ]}>
+                      [ PREFERITI ]
+                    </Text>
+                  )}
+                </Pressable>
               )}
               
-              <TouchableOpacity 
+              <Pressable 
                 onPress={handleSaveEdit}
-                style={[styles.fsSaveBtn, { backgroundColor: currentTheme.textPrimary }]}
+                style={({ pressed }) => [
+                  styles.terminalButtonInline, 
+                  { 
+                    borderColor: '#00FF41',
+                    backgroundColor: pressed ? '#00FF41' : '#000000',
+                  }
+                ]}
               >
-                <Text style={[styles.fsSaveBtnText, { color: isDark ? '#000' : '#fff' }]}>Salva</Text>
-              </TouchableOpacity>
+                {({ pressed }) => (
+                  <Text style={[
+                    styles.terminalButtonInlineText, 
+                    { color: pressed ? '#000000' : '#00FF41' }
+                  ]}>
+                    [ SALVA ]
+                  </Text>
+                )}
+              </Pressable>
             </View>
           </View>
 
@@ -1524,37 +1649,49 @@ export default function DashboardScreen() {
             <View style={styles.fsTitleInputContainer}>
               <TextInput
                 placeholder="Identificativo del log (Titolo)..."
-                placeholderTextColor={currentTheme.textSecondary}
+                placeholderTextColor="#008021"
                 value={editNoteTitle}
                 onChangeText={setEditNoteTitle}
                 style={[
                   styles.fsTitleInput, 
-                  { flex: 1, marginBottom: 0, color: currentTheme.textPrimary }
+                  { flex: 1, marginBottom: 0, color: '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }
                 ]}
               />
-              <TouchableOpacity
+              <Pressable
                 onPress={handleGenerateEditTitle}
                 disabled={(editNoteContent.trim() === '' && editNoteAttachments.length === 0) || isEditTitleLoading}
-                style={[styles.fsGenerateTitleBtn, { borderColor: currentTheme.border, backgroundColor: currentTheme.surface }]}
+                style={({ pressed }) => [
+                  styles.fsGenerateTitleBtn,
+                  { 
+                    borderColor: '#00FF41', 
+                    backgroundColor: pressed ? '#00FF41' : '#000000',
+                    borderWidth: 1,
+                    borderRadius: 0,
+                  }
+                ]}
               >
-                {isEditTitleLoading ? (
-                  <ActivityIndicator size="small" color={currentTheme.textPrimary} />
-                ) : (
-                  <Text style={{ fontSize: 16 }}>✨</Text>
+                {({ pressed }) => (
+                  isEditTitleLoading ? (
+                    <ActivityIndicator size="small" color={pressed ? '#000000' : '#00FF41'} />
+                  ) : (
+                    <Text style={{ color: pressed ? '#000000' : '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold', fontSize: 11 }}>[AI]</Text>
+                  )
                 )}
-              </TouchableOpacity>
+              </Pressable>
             </View>
             
             {/* Riga Data & Badge */}
             <View style={styles.fsMetaRow}>
-              <Text style={[styles.fsDateText, { color: currentTheme.textSecondary }]}>
+              <Text style={[styles.fsDateText, { color: currentTheme.textSecondary, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>
                 {selectedNote?.date}
               </Text>
               {selectedNote?.tags && selectedNote.tags.length > 0 && (
                 <View style={styles.fsTagsRow}>
                   {selectedNote.tags.map((tag, idx) => (
-                    <View key={idx} style={[styles.tagBadge, { backgroundColor: isDark ? selectedNote.pastelAccent.dark : selectedNote.pastelAccent.light }]}>
-                      <Text style={[styles.tagText, { color: isDark ? '#a1a1aa' : '#52525b' }]}>✦ {tag}</Text>
+                    <View key={idx} style={[styles.tagBadge, { borderColor: '#00FF41', borderWidth: 1, borderRadius: 0, backgroundColor: '#000000' }]}>
+                      <Text style={[styles.tagText, { color: '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold' }]}>
+                        {`> ${tag}`}
+                      </Text>
                     </View>
                   ))}
                 </View>
@@ -1564,38 +1701,38 @@ export default function DashboardScreen() {
             {/* Input Contenuto */}
             <TextInput
               placeholder="Inizializza payload di log. Immettere dati da cifrare..."
-              placeholderTextColor={currentTheme.textSecondary}
+              placeholderTextColor="#008021"
               value={editNoteContent}
               onChangeText={setEditNoteContent}
               multiline={true}
               textAlignVertical="top"
               style={[
                 styles.fsContentInput, 
-                { color: currentTheme.textPrimary, minHeight: 180 }
+                { color: '#00FF41', minHeight: 180, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }
               ]}
             />
 
             {/* Sezione Allegati Link in Modifica */}
-            <View style={[styles.fsAttachmentsSection, { borderColor: currentTheme.border }]}>
-              <Text style={[styles.fsAttachmentsTitle, { color: currentTheme.textSecondary }]}>
+            <View style={[styles.fsAttachmentsSection, { borderColor: '#00FF41' }]}>
+              <Text style={[styles.fsAttachmentsTitle, { color: '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold' }]}>
                 Allegati (Link Esterni)
               </Text>
 
               {editNoteAttachments.length > 0 && (
                 <View style={styles.fsAttachmentsRow}>
                   {editNoteAttachments.map((att) => (
-                    <View key={att.id} style={[styles.fsAttachmentChip, { backgroundColor: isDark ? '#1f2937' : '#f3f4f6' }]}>
+                    <View key={att.id} style={[styles.fsAttachmentChip, { borderColor: '#00FF41', borderWidth: 1, backgroundColor: '#000000', borderRadius: 0 }]}>
                       <TouchableOpacity 
                         onPress={() => handleOpenLink(att.uri)}
                         activeOpacity={0.7}
                         style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
                       >
-                        <Text style={[styles.fsAttachmentChipText, { color: currentTheme.textPrimary }]} numberOfLines={1}>
-                          🔗 {att.title || att.uri}
+                        <Text style={[styles.fsAttachmentChipText, { color: '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]} numberOfLines={1}>
+                          [ LNK ] {att.title || att.uri}
                         </Text>
                       </TouchableOpacity>
-                      <TouchableOpacity onPress={() => removeLinkFromEditNote(att.id)}>
-                        <Text style={{ color: '#ef4444', fontWeight: '700', marginLeft: 8 }}>×</Text>
+                      <TouchableOpacity onPress={() => removeLinkFromEditNote(att.id)} style={{ marginLeft: 6 }}>
+                        <Text style={{ color: '#ef4444', fontWeight: 'bold', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>[x]</Text>
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -1606,30 +1743,40 @@ export default function DashboardScreen() {
               <View style={styles.fsAddLinkFormRow}>
                 <TextInput
                   placeholder="Titolo link..."
-                  placeholderTextColor={currentTheme.textSecondary}
+                  placeholderTextColor="#008021"
                   value={editLinkTitle}
                   onChangeText={setEditLinkTitle}
                   style={[
                     styles.fsLinkInput,
-                    { flex: 1, color: currentTheme.textPrimary, borderColor: currentTheme.border, backgroundColor: currentTheme.background }
+                    { flex: 1, color: '#00FF41', borderColor: '#00FF41', backgroundColor: currentTheme.background, borderRadius: 0, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }
                   ]}
                 />
                 <TextInput
                   placeholder="https://..."
-                  placeholderTextColor={currentTheme.textSecondary}
+                  placeholderTextColor="#008021"
                   value={editLinkUrl}
                   onChangeText={setEditLinkUrl}
                   style={[
                     styles.fsLinkInput,
-                    { flex: 2, color: currentTheme.textPrimary, borderColor: currentTheme.border, backgroundColor: currentTheme.background }
+                    { flex: 2, color: '#00FF41', borderColor: '#00FF41', backgroundColor: currentTheme.background, borderRadius: 0, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }
                   ]}
                 />
-                <TouchableOpacity 
+                <Pressable 
                   onPress={addLinkToEditNote}
-                  style={[styles.fsAddLinkBtn, { backgroundColor: currentTheme.textPrimary }]}
+                  style={({ pressed }) => [
+                    styles.fsAddLinkBtn, 
+                    { 
+                      borderColor: '#00FF41', 
+                      backgroundColor: pressed ? '#00FF41' : '#000000',
+                      borderWidth: 1,
+                      borderRadius: 0,
+                    }
+                  ]}
                 >
-                  <Text style={{ color: isDark ? '#000' : '#fff', fontWeight: '700' }}>+</Text>
-                </TouchableOpacity>
+                  {({ pressed }) => (
+                    <Text style={{ color: pressed ? '#000000' : '#00FF41', fontWeight: 'bold', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>[+]</Text>
+                  )}
+                </Pressable>
               </View>
             </View>
           </ScrollView>
@@ -1637,18 +1784,22 @@ export default function DashboardScreen() {
           {/* Footer con Pulsante di Eliminazione */}
           {selectedNote && (
             <View style={[styles.fsFooter, { borderColor: currentTheme.border }]}>
-              <TouchableOpacity 
+              <Pressable 
                 onPress={() => handleDeleteNote(selectedNote.id)}
-                style={[
+                style={({ pressed }) => [
                   styles.fsDeleteBtn, 
                   { 
-                    backgroundColor: isDark ? '#2e1919' : '#fef2f2',
-                    borderColor: isDark ? '#5c2222' : '#fca5a5',
-                  }
+                    backgroundColor: '#000000',
+                    borderColor: '#ef4444',
+                    borderWidth: 1,
+                  },
+                  pressed && { backgroundColor: '#ef4444' }
                 ]}
               >
-                <Text style={styles.fsDeleteBtnText}>Elimina Nota 🗑️</Text>
-              </TouchableOpacity>
+                {({ pressed }) => (
+                  <Text style={[styles.fsDeleteBtnText, { color: pressed ? '#000000' : '#ef4444' }]}>[ ELIMINA LOG ]</Text>
+                )}
+              </Pressable>
             </View>
           )}
         </SafeAreaView>
@@ -1686,13 +1837,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: 0,
     borderWidth: 1,
   },
   statusDot: {
     width: 6,
     height: 6,
-    borderRadius: 3,
+    borderRadius: 0,
     marginRight: 6,
   },
   statusText: {
@@ -1705,7 +1856,7 @@ const styles = StyleSheet.create({
   },
   warningBadge: {
     borderWidth: 1,
-    borderRadius: 12,
+    borderRadius: 0,
     paddingVertical: 10,
     paddingHorizontal: 14,
     alignItems: 'center',
@@ -1723,7 +1874,7 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 12,
+    borderRadius: 0,
     borderWidth: 1,
     paddingHorizontal: 12,
     height: 40,
@@ -1736,6 +1887,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     padding: 0,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   tabFilters: {
     flexDirection: 'row',
@@ -1745,12 +1897,13 @@ const styles = StyleSheet.create({
   tabButton: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: 0,
     borderWidth: 1,
     borderColor: 'transparent',
   },
   tabButtonText: {
     fontSize: 13,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   gridContainer: {
     paddingHorizontal: 20,
@@ -1762,7 +1915,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: (Dimensions.get('window').width - 52) / 2,
-    borderRadius: 2,
+    borderRadius: 0,
     borderWidth: 1,
     borderLeftWidth: 4,
     padding: 14,
@@ -1819,7 +1972,7 @@ const styles = StyleSheet.create({
   tagBadge: {
     paddingHorizontal: 6,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 0,
   },
   tagText: {
     fontSize: 9,
@@ -1844,7 +1997,7 @@ const styles = StyleSheet.create({
     right: 24,
     width: 56,
     height: 56,
-    borderRadius: 4,
+    borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#00FF41',
@@ -1869,7 +2022,7 @@ const styles = StyleSheet.create({
   modalContent: {
     width: '100%',
     maxWidth: 400,
-    borderRadius: 2,
+    borderRadius: 0,
     borderWidth: 1,
     padding: 20,
     elevation: 5,
@@ -1892,7 +2045,7 @@ const styles = StyleSheet.create({
   favToggle: {
     width: 32,
     height: 32,
-    borderRadius: 8,
+    borderRadius: 0,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1910,7 +2063,7 @@ const styles = StyleSheet.create({
   micBtn: {
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 6,
+    borderRadius: 0,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1921,7 +2074,7 @@ const styles = StyleSheet.create({
   },
   modalInput: {
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 0,
     height: 42,
     paddingHorizontal: 12,
     fontSize: 14,
@@ -1941,23 +2094,31 @@ const styles = StyleSheet.create({
   modalBtn: {
     height: 38,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
   },
   modalBtnCancel: {
-    borderWidth: 1,
+    borderColor: '#888888',
+    backgroundColor: '#000000',
   },
   modalBtnCancelText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    color: '#888888',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   modalBtnSave: {
     minWidth: 100,
+    borderColor: '#00FF41',
+    backgroundColor: '#000000',
   },
   modalBtnSaveText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    color: '#00FF41',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   modalBtnDelete: {
     alignItems: 'center',
@@ -1975,7 +2136,7 @@ const styles = StyleSheet.create({
   micSidebarBtn: {
     width: 44,
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
     height: 120,
@@ -1988,7 +2149,7 @@ const styles = StyleSheet.create({
   transcribingContainer: {
     height: 120,
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
@@ -1998,10 +2159,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     marginBottom: 4,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   transcribingSubtext: {
     fontSize: 11,
     textAlign: 'center',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   fullScreenContainer: {
     flex: 1,
@@ -2024,26 +2187,22 @@ const styles = StyleSheet.create({
   fsHeaderActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
-  fsFavToggle: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
+  terminalButtonInline: {
+    minHeight: 40,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 0,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  fsSaveBtn: {
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fsSaveBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
+  terminalButtonInlineText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    textTransform: 'uppercase',
   },
   fsContent: {
     flex: 1,
@@ -2085,15 +2244,15 @@ const styles = StyleSheet.create({
   },
   fsDeleteBtn: {
     height: 46,
-    borderRadius: 12,
+    borderRadius: 0,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   fsDeleteBtnText: {
-    color: '#ef4444',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   ragResponseWrapper: {
     backgroundColor: '#1A1A1A',
@@ -2210,7 +2369,7 @@ const styles = StyleSheet.create({
   cardAttachmentChip: {
     paddingHorizontal: 6,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 0,
     maxWidth: '100%',
   },
   cardAttachmentChipText: {
@@ -2233,7 +2392,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 8,
+    borderRadius: 0,
   },
   modalAttachmentChipText: {
     fontSize: 11,
@@ -2247,7 +2406,7 @@ const styles = StyleSheet.create({
   },
   linkInput: {
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 0,
     height: 34,
     paddingHorizontal: 8,
     fontSize: 12,
@@ -2255,7 +2414,7 @@ const styles = StyleSheet.create({
   addLinkMiniBtn: {
     width: 34,
     height: 34,
-    borderRadius: 8,
+    borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2283,7 +2442,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 8,
+    borderRadius: 0,
     maxWidth: '100%',
   },
   fsAttachmentChipText: {
@@ -2298,7 +2457,7 @@ const styles = StyleSheet.create({
   },
   fsLinkInput: {
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 0,
     height: 38,
     paddingHorizontal: 10,
     fontSize: 13,
@@ -2306,7 +2465,7 @@ const styles = StyleSheet.create({
   fsAddLinkBtn: {
     width: 38,
     height: 38,
-    borderRadius: 8,
+    borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2319,7 +2478,7 @@ const styles = StyleSheet.create({
   generateTitleBtn: {
     width: 42,
     height: 42,
-    borderRadius: 10,
+    borderRadius: 0,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -2333,14 +2492,17 @@ const styles = StyleSheet.create({
   fsGenerateTitleBtn: {
     width: 38,
     height: 38,
-    borderRadius: 10,
+    borderRadius: 0,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   saveButton: {
     height: 44,
-    borderRadius: 2,
+    borderRadius: 0,
+    borderWidth: 1,
+    borderColor: '#00FF41',
+    backgroundColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#00FF41',
@@ -2351,7 +2513,8 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
 });
 

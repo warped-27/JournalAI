@@ -11,11 +11,12 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false, // Nasconde la barra superiore nativa globally per evitare duplicati
-        tabBarActiveTintColor: currentTheme.textPrimary,
-        tabBarInactiveTintColor: currentTheme.textSecondary,
+        tabBarActiveTintColor: '#00FF41',
+        tabBarInactiveTintColor: '#888888',
+        tabBarIconStyle: { minWidth: 60, width: 'auto' },
         tabBarStyle: {
-          backgroundColor: currentTheme.surface, // Si fonde con la superficie principale
-          borderTopColor: currentTheme.border,   // Bordo geometrico finissimo
+          backgroundColor: '#000000', // Nero puro
+          borderTopColor: '#00FF41',   // Bordo superiore verde neon
           borderTopWidth: 1,
           height: Platform.OS === 'ios' ? 84 : 60,
           paddingBottom: Platform.OS === 'ios' ? 24 : 10,
@@ -25,7 +26,8 @@ export default function TabLayout() {
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '600',
+          fontWeight: 'bold',
+          fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
           marginTop: 2,
         }
       }}
@@ -33,22 +35,45 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Journal',
+          title: 'JOURNAL',
           tabBarIcon: ({ color, focused }) => (
-            <Text style={{ fontSize: 20, color, opacity: focused ? 1 : 0.6 }}>📖</Text>
+            <Text 
+              ellipsizeMode="clip"
+              style={{ 
+                fontSize: 14, 
+                fontWeight: 'bold', 
+                fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', 
+                color: color,
+                textAlign: 'center',
+                flexWrap: 'nowrap',
+              }}
+            >
+              [ J ]
+            </Text>
           ),
         }}
       />
       <Tabs.Screen
         name="two"
         options={{
-          title: 'Impostazioni',
+          title: 'IMPOSTAZIONI',
           tabBarIcon: ({ color, focused }) => (
-            <Text style={{ fontSize: 20, color, opacity: focused ? 1 : 0.6 }}>⚙️</Text>
+            <Text 
+              ellipsizeMode="clip"
+              style={{ 
+                fontSize: 14, 
+                fontWeight: 'bold', 
+                fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', 
+                color: color,
+                textAlign: 'center',
+                flexWrap: 'nowrap',
+              }}
+            >
+              [ O ]
+            </Text>
           ),
         }}
       />
     </Tabs>
   );
 }
-

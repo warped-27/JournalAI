@@ -16,6 +16,7 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { Palette } from '../../constants/Colors';
 import { SecureStorage, CloudConfig, AIConfig } from '../../constants/SecureStorage';
+import { NerdLogo } from '../../components/NerdLogo';
 
 // Abilita la chiusura della sessione per flussi basati su browser/Web
 WebBrowser.maybeCompleteAuthSession();
@@ -211,8 +212,16 @@ export default function SettingsScreen() {
       {/* Header */}
       <View style={[styles.header, { borderColor: currentTheme.border }]}>
         <View>
-          <Text style={[styles.headerTitle, { color: currentTheme.textPrimary }]}>Impostazioni</Text>
-          <Text style={[styles.headerSubtitle, { color: currentTheme.textSecondary }]}>spazio_di_lavoro / configurazione</Text>
+          <NerdLogo fontSize={20} />
+          <Text style={{ 
+            fontSize: 12, 
+            fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', 
+            color: '#00FF41', 
+            fontWeight: 'bold',
+            marginTop: 4 
+          }}>
+            [ IMPOSTAZIONI ]
+          </Text>
         </View>
       </View>
 
@@ -238,26 +247,31 @@ export default function SettingsScreen() {
                   <Pressable
                     key={p}
                     onPress={() => setCloudProvider(p)}
-                    style={[
+                    style={({ pressed }) => [
                       styles.selectorBtn,
                       { 
-                        borderColor: isSelected ? '#00FF41' : '#333333',
-                        backgroundColor: isSelected ? '#0A0A0A' : '#1A1A1A'
+                        borderColor: pressed || isSelected ? '#00FF41' : '#333333',
+                        backgroundColor: pressed || isSelected ? '#00FF41' : '#000000',
+                        borderWidth: 1,
+                        borderRadius: 0,
                       }
                     ]}
                   >
-                    <Text 
-                      style={[
-                        styles.selectorBtnText, 
-                        { 
-                          color: isSelected ? '#00FF41' : '#E0E0E0',
-                          fontWeight: isSelected ? '600' : '400'
-                        }
-                      ]}
-                    >
-                      {p === 'none' && 'Nessuno'}
-                      {p === 'google_drive' && 'G-Drive'}
-                    </Text>
+                    {({ pressed }) => (
+                      <Text 
+                        style={[
+                          styles.selectorBtnText, 
+                          { 
+                            color: pressed || isSelected ? '#000000' : '#888888',
+                            fontWeight: 'bold',
+                            fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace'
+                          }
+                        ]}
+                      >
+                        {p === 'none' && '[ NESSUNO ]'}
+                        {p === 'google_drive' && '[ G-DRIVE ]'}
+                      </Text>
+                    )}
                   </Pressable>
                 );
               })}
@@ -269,12 +283,12 @@ export default function SettingsScreen() {
                 <Text style={[styles.label, { color: currentTheme.textPrimary, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>Client ID OAuth Google (OAUTH_ID)</Text>
                 <TextInput
                   placeholder="Client ID OAuth..."
-                  placeholderTextColor={currentTheme.textSecondary}
+                  placeholderTextColor="#008021"
                   value={googleClientId}
                   onChangeText={setGoogleClientId}
                   style={[
                     styles.input,
-                    { color: currentTheme.textPrimary, borderColor: currentTheme.border, backgroundColor: currentTheme.background }
+                    { color: '#00FF41', borderColor: currentTheme.border, backgroundColor: currentTheme.background }
                   ]}
                 />
 
@@ -308,21 +322,41 @@ export default function SettingsScreen() {
                 {googleAccessToken ? (
                   <Pressable
                     onPress={handleGoogleDisconnect}
-                    style={[styles.oauthBtn, { borderColor: '#ef4444', backgroundColor: 'transparent', borderWidth: 1 }]}
+                    style={({ pressed }) => [
+                      styles.oauthBtn,
+                      { 
+                        borderColor: '#ef4444', 
+                        backgroundColor: pressed ? '#ef4444' : '#000000', 
+                        borderWidth: 1,
+                        borderRadius: 0 
+                      }
+                    ]}
                   >
-                    <Text style={[styles.oauthBtnText, { color: '#ef4444' }]}>
-                      Disconnetti Google Drive
-                    </Text>
+                    {({ pressed }) => (
+                      <Text style={[styles.oauthBtnText, { color: pressed ? '#000000' : '#ef4444', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold' }]}>
+                        [ DISCONNETTI GOOGLE DRIVE ]
+                      </Text>
+                    )}
                   </Pressable>
                 ) : (
                   <Pressable
                     onPress={handleGoogleAuth}
                     disabled={authStatus === 'authorizing'}
-                    style={[styles.oauthBtn, { backgroundColor: currentTheme.textPrimary }]}
+                    style={({ pressed }) => [
+                      styles.oauthBtn,
+                      { 
+                        borderColor: '#00FF41', 
+                        backgroundColor: pressed ? '#00FF41' : '#000000', 
+                        borderWidth: 1,
+                        borderRadius: 0 
+                      }
+                    ]}
                   >
-                    <Text style={[styles.oauthBtnText, { color: isDark ? '#000' : '#fff' }]}>
-                      Accedi con Google Drive
-                    </Text>
+                    {({ pressed }) => (
+                      <Text style={[styles.oauthBtnText, { color: pressed ? '#000000' : '#00FF41', fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontWeight: 'bold' }]}>
+                        [ ACCEDI CON GOOGLE DRIVE ]
+                      </Text>
+                    )}
                   </Pressable>
                 )}
               </View>
@@ -345,26 +379,31 @@ export default function SettingsScreen() {
                   <Pressable
                     key={p}
                     onPress={() => setAiProvider(p)}
-                    style={[
+                    style={({ pressed }) => [
                       styles.selectorBtn,
                       { 
-                        borderColor: isSelected ? '#00FF41' : '#333333',
-                        backgroundColor: isSelected ? '#0A0A0A' : '#1A1A1A'
+                        borderColor: pressed || isSelected ? '#00FF41' : '#333333',
+                        backgroundColor: pressed || isSelected ? '#00FF41' : '#000000',
+                        borderWidth: 1,
+                        borderRadius: 0,
                       }
                     ]}
                   >
-                    <Text 
-                      style={[
-                        styles.selectorBtnText, 
-                        { 
-                          color: isSelected ? '#00FF41' : '#E0E0E0',
-                          fontWeight: isSelected ? '600' : '400'
-                        }
-                      ]}
-                    >
-                      {p === 'none' && 'Nessuno'}
-                      {p === 'gemini' && 'Gemini'}
-                    </Text>
+                    {({ pressed }) => (
+                      <Text 
+                        style={[
+                          styles.selectorBtnText, 
+                          { 
+                            color: pressed || isSelected ? '#000000' : '#888888',
+                            fontWeight: 'bold',
+                            fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace'
+                          }
+                        ]}
+                      >
+                        {p === 'none' && '[ NESSUNO ]'}
+                        {p === 'gemini' && '[ GEMINI ]'}
+                      </Text>
+                    )}
                   </Pressable>
                 );
               })}
@@ -376,13 +415,13 @@ export default function SettingsScreen() {
                 <Text style={[styles.label, { color: currentTheme.textPrimary, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }]}>Chiave API (GEMINI_API_KEY)</Text>
                 <TextInput
                   placeholder="API Key Gemini..."
-                  placeholderTextColor={currentTheme.textSecondary}
+                  placeholderTextColor="#008021"
                   value={aiApiKey}
                   onChangeText={setAiApiKey}
                   secureTextEntry
                   style={[
                     styles.input,
-                    { color: currentTheme.textPrimary, borderColor: currentTheme.border, backgroundColor: currentTheme.background, marginBottom: 8 }
+                    { color: '#00FF41', borderColor: currentTheme.border, backgroundColor: currentTheme.background, marginBottom: 8 }
                   ]}
                 />
 
@@ -401,28 +440,33 @@ export default function SettingsScreen() {
                       <Pressable
                         key={m}
                         onPress={() => setGeminiModel(m)}
-                        style={[
+                        style={({ pressed }) => [
                           styles.selectorBtn,
                           {
-                            borderColor: isSelected ? '#00FF41' : '#333333',
-                            backgroundColor: isSelected ? '#0A0A0A' : '#1A1A1A',
+                            borderColor: pressed || isSelected ? '#00FF41' : '#333333',
+                            backgroundColor: pressed || isSelected ? '#00FF41' : '#000000',
+                            borderWidth: 1,
+                            borderRadius: 0,
                             minWidth: '45%',
                             marginBottom: 4
                           }
                         ]}
                       >
-                        <Text
-                          style={[
-                            styles.selectorBtnText,
-                            {
-                              color: isSelected ? '#00FF41' : '#E0E0E0',
-                              fontWeight: isSelected ? '600' : '400',
-                              fontSize: 12
-                            }
-                          ]}
-                        >
-                          {m}
-                        </Text>
+                        {({ pressed }) => (
+                          <Text
+                            style={[
+                              styles.selectorBtnText,
+                              {
+                                color: pressed || isSelected ? '#000000' : '#888888',
+                                fontWeight: 'bold',
+                                fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+                                fontSize: 11
+                              }
+                            ]}
+                          >
+                            {m}
+                          </Text>
+                        )}
                       </Pressable>
                     );
                   })}
@@ -452,23 +496,40 @@ export default function SettingsScreen() {
             <Pressable 
               onPress={handleSave}
               disabled={saveStatus === 'saving'}
-              style={[
+              style={({ pressed }) => [
                 styles.saveButton, 
-                { backgroundColor: currentTheme.textPrimary }
+                { 
+                  backgroundColor: '#000000',
+                  borderColor: '#00FF41',
+                  borderWidth: 1,
+                },
+                pressed && { backgroundColor: '#00FF41' }
               ]}
             >
-              <Text style={[styles.saveButtonText, { color: isDark ? '#000' : '#fff' }]}>
-                {saveStatus === 'saving' ? 'Salvataggio...' : 'Salva Configurazione'}
-              </Text>
+              {({ pressed }) => (
+                <Text style={[styles.saveButtonText, { color: pressed ? '#000000' : '#00FF41' }]}>
+                  {saveStatus === 'saving' ? '[ SALVATAGGIO... ]' : '[ SALVA CONFIGURAZIONE ]'}
+                </Text>
+              )}
             </Pressable>
 
             <Pressable 
               onPress={handleClear}
-              style={[styles.clearButton, { borderColor: currentTheme.border }]}
+              style={({ pressed }) => [
+                styles.clearButton, 
+                { 
+                  backgroundColor: '#000000',
+                  borderColor: '#ef4444',
+                  borderWidth: 1,
+                },
+                pressed && { backgroundColor: '#ef4444' }
+              ]}
             >
-              <Text style={[styles.clearButtonText, { color: currentTheme.textSecondary }]}>
-                Azzera Credenziali Locali
-              </Text>
+              {({ pressed }) => (
+                <Text style={[styles.clearButtonText, { color: pressed ? '#000000' : '#ef4444' }]}>
+                  [ AZZERA CREDENZIALI LOCALI ]
+                </Text>
+              )}
             </Pressable>
           </View>
 
@@ -503,20 +564,22 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   card: {
-    borderRadius: 2,
+    borderRadius: 0,
     borderWidth: 1,
     padding: 16,
     marginBottom: 16,
   },
   cardTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
     marginBottom: 6,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   cardDescription: {
     fontSize: 12,
     lineHeight: 16,
     marginBottom: 16,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   inputWrapper: {
     position: 'relative',
@@ -524,10 +587,12 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderRadius: 10,
+    borderRadius: 0,
     height: 42,
     paddingHorizontal: 12,
     fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    color: '#00FF41',
   },
   inputToggle: {
     position: 'absolute',
@@ -545,7 +610,7 @@ const styles = StyleSheet.create({
     minWidth: '45%',
     height: 38,
     borderWidth: 1,
-    borderRadius: 2,
+    borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -559,35 +624,38 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: 'bold',
     marginTop: 6,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   infoBadge: {
     marginTop: 12,
     padding: 10,
-    borderRadius: 2,
+    borderRadius: 0,
     borderWidth: 1,
     borderStyle: 'dashed',
   },
   infoText: {
     fontSize: 11,
     lineHeight: 15,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   authBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 8,
-    borderRadius: 2,
+    borderRadius: 0,
     borderWidth: 1,
     marginTop: 4,
   },
   authBadgeText: {
     fontSize: 12,
     fontWeight: '600',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   oauthBtn: {
     height: 38,
-    borderRadius: 2,
+    borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 6,
@@ -607,16 +675,17 @@ const styles = StyleSheet.create({
   },
   statusBanner: {
     padding: 12,
-    borderRadius: 2,
+    borderRadius: 0,
     alignItems: 'center',
   },
   statusBannerText: {
     fontSize: 13,
     fontWeight: '600',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   saveButton: {
     height: 48,
-    borderRadius: 2,
+    borderRadius: 0,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#00FF41',
@@ -627,18 +696,20 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
   clearButton: {
     height: 40,
-    borderRadius: 2,
+    borderRadius: 0,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   clearButtonText: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: 'bold',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
   },
 });
 
