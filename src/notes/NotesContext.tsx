@@ -13,8 +13,8 @@ interface NotesState {
 }
 
 interface NotesActions {
-  createNote: (draft: Pick<Note, 'title' | 'content'>) => Promise<Note | null>;
-  updateNote: (id: string, patch: Pick<Note, 'title' | 'content'>) => Promise<void>;
+  createNote: (draft: Pick<Note, 'title' | 'content'> & { attachments?: Note['attachments'] }) => Promise<Note | null>;
+  updateNote: (id: string, patch: Pick<Note, 'title' | 'content'> & { attachments?: Note['attachments'] }) => Promise<void>;
   deleteNote: (id: string) => Promise<void>;
 }
 
@@ -52,12 +52,12 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
     return () => { cancelled = true; };
   }, [vault.isUnlocked]);
 
-  const createNote = useCallback(async (draft: Pick<Note, 'title' | 'content'>): Promise<Note | null> => {
+  const createNote = useCallback(async (draft: Pick<Note, 'title' | 'content'> & { attachments?: Note['attachments'] }): Promise<Note | null> => {
     if (!storeRef.current) return null;
     return storeRef.current.getState().createNote(draft);
   }, []);
 
-  const updateNote = useCallback(async (id: string, patch: Pick<Note, 'title' | 'content'>): Promise<void> => {
+  const updateNote = useCallback(async (id: string, patch: Pick<Note, 'title' | 'content'> & { attachments?: Note['attachments'] }): Promise<void> => {
     return storeRef.current?.getState().updateNote(id, patch);
   }, []);
 

@@ -12,11 +12,12 @@ jest.mock('react-native', () => ({
 }));
 
 const NOTE: Note = {
-  id:        'abc123',
-  title:     'My Test Note',
-  content:   'This is the content of the test note that is quite long and should be truncated in preview.',
-  createdAt: new Date('2025-01-15').getTime(),
-  updatedAt: new Date('2025-01-15').getTime(),
+  id:          'abc123',
+  title:       'My Test Note',
+  content:     'This is the content of the test note that is quite long and should be truncated in preview.',
+  attachments: [],
+  createdAt:   new Date('2025-01-15').getTime(),
+  updatedAt:   new Date('2025-01-15').getTime(),
 };
 
 describe('NoteCard', () => {

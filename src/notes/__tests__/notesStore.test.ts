@@ -10,7 +10,7 @@ function makeRepo() {
 }
 
 function makeNote(id: string, updatedAt = Date.now()): Note {
-  return { id, title: `Note ${id}`, content: 'body', createdAt: updatedAt, updatedAt };
+  return { id, title: `Note ${id}`, content: 'body', attachments: [], createdAt: updatedAt, updatedAt };
 }
 
 describe('notesStore', () => {

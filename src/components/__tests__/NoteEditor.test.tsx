@@ -2,7 +2,9 @@ import React, { act } from 'react';
 import TestRenderer from 'react-test-renderer';
 import { NoteEditor } from '../NoteEditor';
 
-jest.mock('../AiAssistant', () => ({ AiAssistant: () => null }));
+jest.mock('../AiAssistant',     () => ({ AiAssistant:     () => null }));
+jest.mock('../AttachmentPicker', () => ({ AttachmentPicker: () => null }));
+jest.mock('../AttachmentList',   () => ({ AttachmentList:   () => null }));
 jest.mock('../../ai/AiContext', () => ({
   useAi: () => ({
     apiKey: null,
@@ -55,7 +57,7 @@ describe('NoteEditor', () => {
     });
     const saveBtn = renderer.root.findByProps({ testID: 'save-btn' });
     await act(async () => { saveBtn.props.onPress(); });
-    expect(onSave).toHaveBeenCalledWith({ title: 'New title', content: 'New content' });
+    expect(onSave).toHaveBeenCalledWith({ title: 'New title', content: 'New content', attachments: [] });
   });
 
   it('calls onDelete when delete button pressed', async () => {

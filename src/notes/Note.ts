@@ -1,9 +1,32 @@
-export interface Note {
+export type AttachmentType = 'image' | 'file' | 'link' | 'voice';
+
+export interface Attachment {
   id:        string;
-  title:     string;
-  content:   string;
-  createdAt: number; // unix ms
-  updatedAt: number; // unix ms
+  type:      AttachmentType;
+  createdAt: number;
+
+  // image | file | voice — base64-encoded binary
+  data?:       string;
+  mimeType?:   string;
+  name?:       string;
+  size?:       number; // bytes
+
+  // link
+  url?:        string;
+  title?:      string;
+
+  // voice only
+  duration?:       number; // seconds
+  transcription?:  string;
+}
+
+export interface Note {
+  id:          string;
+  title:       string;
+  content:     string;
+  attachments: Attachment[]; // always present; [] for old notes
+  createdAt:   number; // unix ms
+  updatedAt:   number; // unix ms
 }
 
 /** Shape of a row as stored in SQLite (id + encrypted JSON + timestamps). */

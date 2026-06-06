@@ -8,11 +8,12 @@ const KEY = new Uint8Array(32).fill(0xab);
 function makeNote(overrides: Partial<Note> = {}): Note {
   const now = Date.now();
   return {
-    id:        'note-001',
-    title:     'Test title',
-    content:   'Test content',
-    createdAt: now,
-    updatedAt: now,
+    id:          'note-001',
+    title:       'Test title',
+    content:     'Test content',
+    attachments: [],
+    createdAt:   now,
+    updatedAt:   now,
     ...overrides,
   };
 }

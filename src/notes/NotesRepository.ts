@@ -63,7 +63,10 @@ export class NotesRepository {
       return null;
     }
     try {
-      return JSON.parse(fromUtf8(result.value)) as Note;
+      const note = JSON.parse(fromUtf8(result.value)) as Note;
+      // Backward-compat: old notes stored before attachments were added
+      if (!note.attachments) note.attachments = [];
+      return note;
     } catch {
       logger.warn('NotesRepository: JSON parse failed for note', { id: row.id });
       return null;

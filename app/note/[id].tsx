@@ -16,9 +16,10 @@ export default function NoteScreen() {
   const note = notes.find((n) => n.id === id);
 
   // Snapshot initial values so edits don't flicker on re-render
-  const [initial] = useState<Pick<Note, 'title' | 'content'>>({
-    title:   note?.title   ?? '',
-    content: note?.content ?? '',
+  const [initial] = useState<Pick<Note, 'title' | 'content' | 'attachments'>>({
+    title:       note?.title       ?? '',
+    content:     note?.content     ?? '',
+    attachments: note?.attachments ?? [],
   });
 
   // Track intentional deletion so the useEffect doesn't double-navigate
@@ -32,7 +33,7 @@ export default function NoteScreen() {
     }
   }, [note, id]);
 
-  async function handleSave(patch: Pick<Note, 'title' | 'content'>) {
+  async function handleSave(patch: Pick<Note, 'title' | 'content'> & { attachments?: Note['attachments'] }) {
     if (!id) return;
     await updateNote(id, patch);
     router.back();
@@ -59,6 +60,7 @@ export default function NoteScreen() {
       <NoteEditor
         initialTitle={initial.title}
         initialContent={initial.content}
+        initialAttachments={initial.attachments}
         onSave={handleSave}
         onDelete={handleDelete}
       />
