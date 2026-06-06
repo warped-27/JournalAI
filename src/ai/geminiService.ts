@@ -1,7 +1,7 @@
 import type { Result } from '../lib/result';
 import { ok, err } from '../lib/result';
 
-export const DEFAULT_GEMINI_MODEL = 'gemini-2.0-flash-lite';
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.1-flash-lite';
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 export interface GeminiRequest {

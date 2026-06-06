@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Pressable, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useNotes } from '../../src/notes/NotesContext';
@@ -21,9 +21,15 @@ export default function NoteScreen() {
     content: note?.content ?? '',
   });
 
-  // If note was deleted from elsewhere, go back
+  // Track intentional deletion so the useEffect doesn't double-navigate
+  const deletingRef = useRef(false);
+
+  // If note disappears (deleted here or from elsewhere), go home safely
   useEffect(() => {
-    if (id && !note) router.back();
+    if (id && !note && !deletingRef.current) {
+      if (router.canGoBack()) router.back();
+      else router.replace('/');
+    }
   }, [note, id]);
 
   async function handleSave(patch: Pick<Note, 'title' | 'content'>) {
@@ -34,8 +40,11 @@ export default function NoteScreen() {
 
   async function handleDelete() {
     if (!id) return;
+    deletingRef.current = true;
     await deleteNote(id);
-    router.back();
+    // Let the useEffect navigate once the store update propagates
+    if (router.canGoBack()) router.back();
+    else router.replace('/');
   }
 
   return (

@@ -3,6 +3,15 @@ import TestRenderer from 'react-test-renderer';
 import { NoteEditor } from '../NoteEditor';
 
 jest.mock('../AiAssistant', () => ({ AiAssistant: () => null }));
+jest.mock('../../ai/AiContext', () => ({
+  useAi: () => ({
+    apiKey: null,
+    requestWithConsent: jest.fn(),
+    isLoading: false,
+    pendingConsent: false,
+    giveConsent: jest.fn(),
+  }),
+}));
 
 jest.mock('react-native', () => ({
   Platform:      { OS: 'web' },
