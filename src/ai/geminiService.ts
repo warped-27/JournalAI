@@ -1,12 +1,13 @@
 import type { Result } from '../lib/result';
 import { ok, err } from '../lib/result';
 
-const GEMINI_MODEL = 'gemini-2.0-flash';
+export const DEFAULT_GEMINI_MODEL = 'gemini-2.0-flash-lite';
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 export interface GeminiRequest {
   prompt: string;
   apiKey: string;
+  model?: string;
   maxOutputTokens?: number;
   temperature?: number;
 }
@@ -20,9 +21,9 @@ interface GeminiApiResponse {
 }
 
 export async function callGemini(req: GeminiRequest): Promise<Result<string, Error>> {
-  const { prompt, apiKey, maxOutputTokens = 1024, temperature = 0.7 } = req;
+  const { prompt, apiKey, model = DEFAULT_GEMINI_MODEL, maxOutputTokens = 1024, temperature = 0.7 } = req;
 
-  const url = `${GEMINI_BASE}/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const url = `${GEMINI_BASE}/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
   let response: Response;
   try {

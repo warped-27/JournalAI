@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Pressable } from 'react-native';
+import { View, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAi } from '../src/ai/AiContext';
+import { useAi, GEMINI_MODELS } from '../src/ai/AiContext';
 import { Box } from '../src/design/components/Box';
 import { T } from '../src/design/components/T';
 import { Input } from '../src/design/components/Input';
@@ -11,7 +11,7 @@ import { Colors, Spacing } from '../src/design/tokens';
 export default function SettingsScreen() {
   const router = useRouter();
   const ai = useAi();
-  const [key, setKey] = useState(ai.apiKey ?? '');
+  const [key,   setKey]   = useState(ai.apiKey ?? '');
   const [saved, setSaved] = useState(false);
 
   async function handleSave() {
@@ -27,19 +27,20 @@ export default function SettingsScreen() {
 
   return (
     <Box style={styles.root}>
+      {/* Nav */}
       <View style={styles.nav}>
         <Pressable onPress={() => router.back()} style={styles.backBtn} testID="settings-back">
           <T variant="label">← BACK</T>
         </Pressable>
       </View>
 
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content}>
+        {/* ─── API KEY ─── */}
         <T variant="heading" style={styles.section}>AI SETTINGS</T>
 
         <T variant="label" style={styles.label}>GEMINI API KEY</T>
         <T variant="muted" style={styles.hint}>
-          Your key is stored locally on this device only (never sent to our servers).
-          Get a free key at aistudio.google.com
+          Stored only on this device. Get a free key at aistudio.google.com
         </T>
 
         <Input
@@ -77,7 +78,32 @@ export default function SettingsScreen() {
             Key configured: {ai.apiKey.slice(0, 8)}…
           </T>
         )}
-      </View>
+
+        {/* ─── MODEL ─── */}
+        <T variant="label" style={[styles.label, styles.modelTitle]}>AI MODEL</T>
+        <T variant="muted" style={styles.hint}>
+          Flash Lite is free-tier and fastest. Flash is more capable.
+        </T>
+
+        {GEMINI_MODELS.map((m) => {
+          const active = ai.model === m.id;
+          return (
+            <Pressable
+              key={m.id}
+              style={[styles.modelRow, active && styles.modelRowActive]}
+              onPress={() => ai.setModel(m.id)}
+              testID={`model-${m.id}`}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: active }}
+            >
+              <View style={[styles.radio, active && styles.radioActive]} />
+              <T variant={active ? 'label' : 'muted'} style={styles.modelLabel}>
+                {m.label}
+              </T>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
     </Box>
   );
 }
@@ -91,13 +117,34 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
-  backBtn:  { alignSelf: 'flex-start' },
-  content:  { padding: Spacing.md },
-  section:  { marginBottom: Spacing.lg },
-  label:    { marginBottom: Spacing.xs },
-  hint:     { marginBottom: Spacing.md, lineHeight: 18 },
-  input:    { marginBottom: Spacing.md },
-  actions:  { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
-  btn:      { flex: 1 },
-  status:   { marginTop: Spacing.xs },
+  backBtn:    { alignSelf: 'flex-start' },
+  content:    { padding: Spacing.md, paddingBottom: Spacing.xxl },
+  section:    { marginBottom: Spacing.lg },
+  label:      { marginBottom: Spacing.xs },
+  hint:       { marginBottom: Spacing.md, lineHeight: 18 },
+  input:      { marginBottom: Spacing.md },
+  actions:    { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
+  btn:        { flex: 1 },
+  status:     { marginTop: Spacing.xs },
+  modelTitle: { marginTop: Spacing.lg },
+  modelRow: {
+    flexDirection:  'row',
+    alignItems:     'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
+    borderWidth:    1,
+    borderColor:    Colors.border,
+    marginBottom:   Spacing.xs,
+    gap:            Spacing.sm,
+  },
+  modelRowActive: { borderColor: Colors.green, backgroundColor: Colors.greenBg },
+  radio: {
+    width:        12,
+    height:       12,
+    borderRadius: 0,
+    borderWidth:  1,
+    borderColor:  Colors.greenDim,
+  },
+  radioActive: { backgroundColor: Colors.green, borderColor: Colors.green },
+  modelLabel: { flex: 1 },
 });

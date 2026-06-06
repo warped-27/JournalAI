@@ -6,6 +6,7 @@ import '../src/lib/polyfills';
 import { VaultProvider } from '../src/crypto/VaultContext';
 import { AuthGuard } from '../src/components/AuthGuard';
 import { AiProvider } from '../src/ai/AiContext';
+import { NotesProvider } from '../src/notes/NotesContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -27,13 +28,15 @@ export default function RootLayout() {
   return (
     <VaultProvider>
       <AiProvider>
-      <AuthGuard>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="note/[id]" />
-          <Stack.Screen name="settings" />
-        </Stack>
-      </AuthGuard>
+        <AuthGuard>
+          <NotesProvider>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="note/[id]" />
+              <Stack.Screen name="settings" />
+            </Stack>
+          </NotesProvider>
+        </AuthGuard>
       </AiProvider>
     </VaultProvider>
   );

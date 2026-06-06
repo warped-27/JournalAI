@@ -26,6 +26,8 @@ function makeAiCtx(overrides: Partial<ReturnType<typeof useAi>> = {}): ReturnTyp
     apiKey:             'test-key',
     setApiKey:          jest.fn(),
     clearApiKey:        jest.fn(),
+    model:              'gemini-2.0-flash-lite',
+    setModel:           jest.fn(),
     hasConsented:       true,
     giveConsent:        jest.fn(),
     pendingConsent:     false,

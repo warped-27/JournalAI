@@ -8,6 +8,7 @@ export interface AiRequest {
   noteContent: string;
   instruction: string;
   apiKey: string;
+  model?: string;
 }
 
 const SYSTEM_PREAMBLE =
@@ -32,5 +33,5 @@ export async function askAi(req: AiRequest): Promise<Result<string, Error>> {
     `Journal note:\n"""\n${safeContent}\n"""\n\n` +
     `User request: ${safeInstruction}`;
 
-  return callGemini({ prompt, apiKey: req.apiKey });
+  return callGemini({ prompt, apiKey: req.apiKey, model: req.model });
 }
