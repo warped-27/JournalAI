@@ -28,6 +28,7 @@ export default function RootLayout() {
       <AuthGuard>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="note/[id]" />
         </Stack>
       </AuthGuard>
     </VaultProvider>
