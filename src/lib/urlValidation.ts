@@ -1,4 +1,5 @@
-const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
+// Note: URL.hostname returns '[::1]' (with brackets) for IPv6 loopback
+const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 /**
  * Validates that a URL is safe to use for provider/sync network calls.

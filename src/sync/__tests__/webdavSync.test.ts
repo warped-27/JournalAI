@@ -62,3 +62,25 @@ describe('testWebDavConnection', () => {
     await expect(testWebDavConnection(cfg)).rejects.toThrow('401');
   });
 });
+
+describe('URL validation', () => {
+  const httpLanCfg: WebDavConfig = { url: 'http://192.168.1.50/dav', username: 'u', password: 'p' };
+  const fileCfg:    WebDavConfig = { url: 'file:///etc/passwd',       username: 'u', password: 'p' };
+
+  it('webdavPush throws for http:// on non-localhost', async () => {
+    await expect(webdavPush(httpLanCfg, bundle)).rejects.toThrow('Unencrypted HTTP');
+  });
+
+  it('webdavPull throws for http:// on non-localhost', async () => {
+    await expect(webdavPull(httpLanCfg)).rejects.toThrow('Unencrypted HTTP');
+  });
+
+  it('testWebDavConnection throws for file:// scheme', async () => {
+    await expect(testWebDavConnection(fileCfg)).rejects.toThrow('not allowed');
+  });
+
+  it('accepts https:// for external hosts', async () => {
+    mockFetch.mockResolvedValueOnce({ status: 207 });
+    await expect(testWebDavConnection(cfg)).resolves.not.toThrow();
+  });
+});

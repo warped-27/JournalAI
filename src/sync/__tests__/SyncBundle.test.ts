@@ -50,4 +50,20 @@ describe('SyncBundle', () => {
     expect(parsed.notes).toHaveLength(1);
     expect(parsed.notes[0]!.id).toBe('n1');
   });
+
+  it('throws when notes array exceeds the maximum count', () => {
+    // Build a bundle JSON with 100 001 minimal note entries without actually
+    // allocating a 100 001-element array in memory (faster in tests).
+    const fakeNote = '{"id":"x","envelope":"e","updated_at":1,"created_at":0}';
+    const manyNotes = Array.from({ length: 100_001 }, () => fakeNote).join(',');
+    const raw = `{"version":1,"salt":"AAAA","exportedAt":1,"deviceId":"x","notes":[${manyNotes}]}`;
+    expect(() => parseBundle(raw)).toThrow('too many notes');
+  });
+
+  it('throws when raw string exceeds the size limit', () => {
+    // Pass an object whose .length exceeds MAX_BUNDLE_BYTES without allocating that memory.
+    // The guard check runs before JSON.parse, so the fake length is enough.
+    const oversized = { length: 512 * 1024 * 1024 + 1 } as unknown as string;
+    expect(() => parseBundle(oversized)).toThrow('maximum allowed size');
+  });
 });

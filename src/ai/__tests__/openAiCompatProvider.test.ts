@@ -91,3 +91,29 @@ describe('testOpenAiCompatConnection', () => {
     await expect(testOpenAiCompatConnection(BASE)).rejects.toThrow('Cannot reach server');
   });
 });
+
+describe('URL validation', () => {
+  it('makeOpenAiCompatProvider throws for file:// scheme', () => {
+    expect(() =>
+      makeOpenAiCompatProvider({ id: 'x', baseUrl: 'file:///etc/passwd', model: 'm' }),
+    ).toThrow('not allowed');
+  });
+
+  it('makeOpenAiCompatProvider throws for http:// on non-localhost', () => {
+    expect(() =>
+      makeOpenAiCompatProvider({ id: 'x', baseUrl: 'http://192.168.1.5:11434', model: 'm' }),
+    ).toThrow('Unencrypted HTTP');
+  });
+
+  it('makeOpenAiCompatProvider accepts https:// for any host', () => {
+    expect(() =>
+      makeOpenAiCompatProvider({ id: 'x', baseUrl: 'https://remote.server.com', model: 'm' }),
+    ).not.toThrow();
+  });
+
+  it('testOpenAiCompatConnection throws for http:// on non-localhost', async () => {
+    await expect(
+      testOpenAiCompatConnection('http://10.0.0.5:11434'),
+    ).rejects.toThrow('Unencrypted HTTP');
+  });
+});

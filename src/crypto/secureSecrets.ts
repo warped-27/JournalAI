@@ -6,7 +6,7 @@ import { isTauri } from '../platform/detect';
  *
  * Priority order:
  *   1. Tauri desktop → OS keychain via Rust `keyring` crate (invoke commands)
- *   2. Web browser  → sessionStorage for plaintext secrets, localStorage for crypto material
+ *   2. Web browser  → sessionStorage for plaintext secrets; vault keys throw (not allowed in browser)
  *
  * The web browser path exists only as a developer/fallback surface.
  * The production targets are Tauri (desktop) and EAS native (mobile).
@@ -59,7 +59,7 @@ function webGet(key: string): string | null {
   return localStorage.getItem(key);
 }
 
-function webSet(key: string, _value: string): void {
+function webSet(key: string, value: string): void {
   if (VAULT_CRITICAL_KEYS.has(key)) {
     throw new Error(
       'Vault storage requires a secure keychain — ' +
@@ -69,7 +69,7 @@ function webSet(key: string, _value: string): void {
   const store = (SESSION_STORAGE_KEYS.has(key) && _sessionStorage)
     ? _sessionStorage
     : localStorage;
-  store.setItem(key, _value);
+  store.setItem(key, value);
 }
 
 function webDelete(key: string): void {
