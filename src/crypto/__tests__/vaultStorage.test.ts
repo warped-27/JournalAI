@@ -1,17 +1,25 @@
-import { loadSalt, saveSalt, loadVerifier, saveVerifier, clearVault, VAULT_SALT_KEY, VAULT_VERIFIER_KEY } from '../vaultStorage';
+import { loadSalt, saveSalt, loadVerifier, saveVerifier, clearVault } from '../vaultStorage';
 import { KDF_SALT_BYTES } from '../kdf';
+import * as SecureStoreMock from 'expo-secure-store';
 
-jest.mock('expo-secure-store', () => ({
-  getItemAsync:    jest.fn(),
-  setItemAsync:    jest.fn(),
-  deleteItemAsync: jest.fn(),
-}));
+jest.mock('expo-secure-store', () => {
+  const store: Record<string, string> = {};
+  return {
+    getItemAsync:    jest.fn(async (key: string) => store[key] ?? null),
+    setItemAsync:    jest.fn(async (key: string, v: string) => { store[key] = v; }),
+    deleteItemAsync: jest.fn(async (key: string) => { delete store[key]; }),
+    __clear:         () => { Object.keys(store).forEach(k => delete store[k]); },
+  };
+});
 
 jest.mock('react-native', () => ({
   Platform: { OS: 'web' },
 }));
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => {
+  localStorage.clear();
+  (SecureStoreMock as any).__clear();
+});
 
 describe('vaultStorage', () => {
   it('loadSalt returns null when nothing stored', async () => {

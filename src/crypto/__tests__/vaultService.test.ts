@@ -1,10 +1,15 @@
 import { createVault, unlockVault, isVaultInitialised } from '../vaultService';
+import * as SecureStoreMock from 'expo-secure-store';
 
-jest.mock('expo-secure-store', () => ({
-  getItemAsync:    jest.fn(),
-  setItemAsync:    jest.fn(),
-  deleteItemAsync: jest.fn(),
-}));
+jest.mock('expo-secure-store', () => {
+  const store: Record<string, string> = {};
+  return {
+    getItemAsync:    jest.fn(async (key: string) => store[key] ?? null),
+    setItemAsync:    jest.fn(async (key: string, v: string) => { store[key] = v; }),
+    deleteItemAsync: jest.fn(async (key: string) => { delete store[key]; }),
+    __clear:         () => { Object.keys(store).forEach(k => delete store[k]); },
+  };
+});
 
 jest.mock('react-native', () => ({
   Platform: { OS: 'web' },
@@ -19,7 +24,10 @@ jest.mock('../kdf', () => {
   };
 });
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => {
+  localStorage.clear();
+  (SecureStoreMock as any).__clear();
+});
 
 describe('isVaultInitialised', () => {
   it('returns false when no vault exists', async () => {
@@ -41,7 +49,7 @@ describe('createVault', () => {
 
   it('two vaults with same password produce different keys (different salts)', async () => {
     const k1 = await createVault('same');
-    localStorage.clear();
+    (SecureStoreMock as any).__clear();
     const k2 = await createVault('same');
     expect(k1).not.toEqual(k2);
   });
