@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useVault } from '../src/crypto/VaultContext';
 import { useAi, GEMINI_MODELS } from '../src/ai/AiContext';
 import { useOnDevice } from '../src/ai/onDevice/OnDeviceContext';
 import { testOpenAiCompatConnection } from '../src/ai/providers/openAiCompatProvider';
@@ -16,6 +17,7 @@ import { Colors, Spacing } from '../src/design/tokens';
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const vault    = useVault();
   const ai       = useAi();
   const onDevice = useOnDevice();
   const sync     = useSync();
@@ -463,6 +465,45 @@ export default function SettingsScreen() {
             {mlxStatus}
           </T>
         ) : null}
+
+        {/* ─── SECURITY ─── */}
+        {vault.biometricAvailable && (
+          <>
+            <T variant="heading" style={[styles.section, styles.syncHeading]}>SECURITY</T>
+
+            <T variant="label" style={styles.label}>BIOMETRIC UNLOCK</T>
+            <T variant="muted" style={styles.hint}>
+              {vault.biometricEnabled
+                ? 'Face ID / Fingerprint unlock is active. The vault key is protected by your device secure enclave.'
+                : 'Enable Face ID or Fingerprint unlock. Your vault key is stored in the device secure enclave — it never leaves the device.'}
+            </T>
+
+            {vault.biometricEnabled ? (
+              <Btn
+                label="DISABLE BIOMETRICS"
+                variant="danger"
+                onPress={vault.disableBiometrics}
+                style={[styles.btn, styles.fullBtn]}
+                testID="settings-biometric-disable"
+              />
+            ) : (
+              <Btn
+                label="ENABLE BIOMETRICS"
+                variant="primary"
+                onPress={vault.enableBiometrics}
+                style={[styles.btn, styles.fullBtn]}
+                testID="settings-biometric-enable"
+                disabled={!vault.isUnlocked}
+              />
+            )}
+
+            {!vault.isUnlocked && !vault.biometricEnabled && (
+              <T variant="muted" style={styles.hint}>
+                Unlock the vault first to enable biometrics.
+              </T>
+            )}
+          </>
+        )}
 
         {/* ─── SYNC ─── */}
         <T variant="heading" style={[styles.section, styles.syncHeading]}>

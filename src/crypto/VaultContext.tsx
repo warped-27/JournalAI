@@ -9,22 +9,40 @@ import React, {
 import { AppState, type AppStateStatus } from 'react-native';
 import { createVault, unlockVault, isVaultInitialised } from './vaultService';
 import { clearVault } from './vaultStorage';
+import { secretGet, secretSet, secretDelete } from './secureSecrets';
+import {
+  isBiometricsAvailable,
+  storeBiometricKey,
+  retrieveBiometricKey,
+  deleteBiometricKey,
+} from './biometricUnlock';
 import { type Result, ok, err } from '../lib/result';
 
 const AUTO_LOCK_MS = 2 * 60 * 1000; // 2 minutes in background
+const BIOMETRIC_ENABLED_KEY = 'nj_biometric_enabled';
 
 interface VaultState {
   /** true while the vault is unlocked (key is in RAM) */
   isUnlocked: boolean;
   /** true if a vault has been created on this device */
   isInitialised: boolean | null; // null = not yet checked
+  /** true if the device has enrolled biometrics (FaceID / Fingerprint) */
+  biometricAvailable: boolean;
+  /** true if the user has enabled biometric unlock */
+  biometricEnabled: boolean;
 }
 
 interface VaultActions {
   create:  (password: string) => Promise<Result<void>>;
   unlock:  (password: string) => Promise<Result<void>>;
+  /** Retrieve vault key via OS biometric prompt. Returns err if user cancels or biometrics fail. */
+  unlockWithBiometrics: () => Promise<Result<void>>;
   lock:    () => void;
   wipe:    () => Promise<void>;
+  /** Store vault key in secure enclave and enable biometric unlock. Requires vault to be unlocked. */
+  enableBiometrics:  () => Promise<void>;
+  /** Remove stored key from secure enclave and disable biometric unlock. */
+  disableBiometrics: () => Promise<void>;
   /** Exposed for encrypting/decrypting notes — undefined when locked */
   getKey: () => Uint8Array | undefined;
 }
@@ -34,12 +52,16 @@ const VaultContext = createContext<(VaultState & VaultActions) | undefined>(unde
 export function VaultProvider({ children }: { children: React.ReactNode }) {
   const keyRef               = useRef<Uint8Array | undefined>(undefined);
   const bgTimerRef           = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const [isUnlocked, setIsUnlocked]     = useState(false);
-  const [isInitialised, setIsInitialised] = useState<boolean | null>(null);
+  const [isUnlocked, setIsUnlocked]         = useState(false);
+  const [isInitialised, setIsInitialised]   = useState<boolean | null>(null);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [biometricEnabled,   setBiometricEnabled]   = useState(false);
 
-  // Check vault state on mount
+  // Check vault state and biometric availability on mount
   useEffect(() => {
     isVaultInitialised().then(setIsInitialised);
+    isBiometricsAvailable().then(setBiometricAvailable);
+    secretGet(BIOMETRIC_ENABLED_KEY).then((v) => setBiometricEnabled(v === 'true'));
   }, []);
 
   // Auto-lock when the app goes to background for > AUTO_LOCK_MS
@@ -89,16 +111,45 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
     return ok(undefined);
   }, []);
 
+  const unlockWithBiometrics = useCallback(async (): Promise<Result<void>> => {
+    const key = await retrieveBiometricKey();
+    if (!key) return err('Biometric unlock cancelled or unavailable.');
+    keyRef.current = key;
+    setIsUnlocked(true);
+    return ok(undefined);
+  }, []);
+
+  const enableBiometrics = useCallback(async () => {
+    if (!keyRef.current) return;
+    await storeBiometricKey(keyRef.current);
+    await secretSet(BIOMETRIC_ENABLED_KEY, 'true');
+    setBiometricEnabled(true);
+  }, []);
+
+  const disableBiometrics = useCallback(async () => {
+    await deleteBiometricKey();
+    await secretDelete(BIOMETRIC_ENABLED_KEY);
+    setBiometricEnabled(false);
+  }, []);
+
   const wipe = useCallback(async () => {
+    await disableBiometrics();
     lock();
     await clearVault();
     setIsInitialised(false);
-  }, [lock]);
+  }, [lock, disableBiometrics]);
 
   const getKey = useCallback(() => keyRef.current, []);
 
   return (
-    <VaultContext.Provider value={{ isUnlocked, isInitialised, create, unlock, lock, wipe, getKey }}>
+    <VaultContext.Provider value={{
+      isUnlocked, isInitialised,
+      biometricAvailable, biometricEnabled,
+      create, unlock, unlockWithBiometrics,
+      lock, wipe,
+      enableBiometrics, disableBiometrics,
+      getKey,
+    }}>
       {children}
     </VaultContext.Provider>
   );
