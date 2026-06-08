@@ -225,6 +225,13 @@ export default function SettingsScreen() {
           </T>
         </Pressable>
 
+        {ai.autoEnrich && ai.apiKey && onDevice.status !== 'loaded' && (
+          <T variant="error" style={styles.privacyWarning} testID="autoenrich-warning">
+            Note content is sent to Gemini automatically on every save.
+            Load the on-device model to keep notes local.
+          </T>
+        )}
+
         {/* ─── MODEL ─── */}
         <T variant="label" style={[styles.label, styles.modelTitle]}>AI MODEL</T>
         <T variant="muted" style={styles.hint}>
@@ -632,6 +639,7 @@ const styles = StyleSheet.create({
   syncHeading:    { marginTop: Spacing.xl, marginBottom: Spacing.sm },
   warnBadge:      { color: Colors.warning, fontSize: 11 },
   warnText:       { color: Colors.warning },
+  privacyWarning: { color: Colors.error, marginBottom: Spacing.md, lineHeight: 18 },
   disconnectBtn:  { marginTop: Spacing.xs },
   fullBtn:        { alignSelf: 'stretch' },
   sectionGap:     { marginBottom: Spacing.md },

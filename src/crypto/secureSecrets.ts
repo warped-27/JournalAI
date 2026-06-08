@@ -31,6 +31,10 @@ async function tauriDelete(key: string): Promise<void> {
 
 // ─── Browser fallback ────────────────────────────────────────────────────────
 
+// Vault-critical keys must never be persisted in browser localStorage.
+// They are only safe inside the OS keychain (Tauri) or the device secure enclave (native).
+const VAULT_CRITICAL_KEYS = new Set(['nj_vault_salt', 'nj_vault_verifier']);
+
 // Plaintext secrets use sessionStorage (not persisted across browser sessions)
 const SESSION_STORAGE_KEYS = new Set(['nj_gemini_apikey']);
 
@@ -55,11 +59,17 @@ function webGet(key: string): string | null {
   return localStorage.getItem(key);
 }
 
-function webSet(key: string, value: string): void {
+function webSet(key: string, _value: string): void {
+  if (VAULT_CRITICAL_KEYS.has(key)) {
+    throw new Error(
+      'Vault storage requires a secure keychain — ' +
+      'please use the Tauri desktop app or a native iOS/Android build.',
+    );
+  }
   const store = (SESSION_STORAGE_KEYS.has(key) && _sessionStorage)
     ? _sessionStorage
     : localStorage;
-  store.setItem(key, value);
+  store.setItem(key, _value);
 }
 
 function webDelete(key: string): void {
