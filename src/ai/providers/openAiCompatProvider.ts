@@ -1,4 +1,5 @@
 import type { AiProvider } from './types';
+import { assertSafeUrl } from '../../lib/urlValidation';
 
 export interface OpenAiCompatConfig {
   id: string;
@@ -13,6 +14,7 @@ interface OaiResponse {
 }
 
 export function makeOpenAiCompatProvider(config: OpenAiCompatConfig): AiProvider {
+  assertSafeUrl(config.baseUrl);
   const base = config.baseUrl.replace(/\/+$/, '');
   return {
     id: config.id,
@@ -59,6 +61,7 @@ export function makeOpenAiCompatProvider(config: OpenAiCompatConfig): AiProvider
 
 /** Checks whether an OpenAI-compatible server is reachable at baseUrl. */
 export async function testOpenAiCompatConnection(baseUrl: string): Promise<void> {
+  assertSafeUrl(baseUrl);
   const base = baseUrl.replace(/\/+$/, '');
   let response: Response;
   try {

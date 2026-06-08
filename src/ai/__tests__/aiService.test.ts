@@ -64,6 +64,6 @@ describe('askAi', () => {
     const p2 = makeProvider(new Error('fail2'));
     const r = await askAi({ noteContent: 'note', instruction: 'summarize', providers: [p1, p2] });
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.error.message).toContain('fail1');
+    if (!r.ok) expect(r.error.message).toContain('AI request failed');
   });
 });

@@ -36,7 +36,6 @@ const config: ExpoConfig = {
       'android.permission.RECORD_AUDIO',
       'android.permission.CAMERA',
       'android.permission.READ_MEDIA_IMAGES',
-      'android.permission.READ_EXTERNAL_STORAGE',
     ],
     predictiveBackGestureEnabled: false,
   },

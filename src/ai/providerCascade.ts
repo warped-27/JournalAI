@@ -1,6 +1,7 @@
 import type { AiProvider } from './providers/types';
 import type { Result } from '../lib/result';
 import { ok, err } from '../lib/result';
+import { logger } from '../lib/logger';
 
 export async function cascadeComplete(
   providers: AiProvider[],
@@ -16,5 +17,6 @@ export async function cascadeComplete(
       errors.push(`${provider.id}: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
-  return err(new Error(`All AI providers failed:\n${errors.join('\n')}`));
+  logger.warn('cascadeComplete: all providers failed', { errors });
+  return err(new Error('AI request failed — no provider could complete the request'));
 }

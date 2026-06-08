@@ -71,20 +71,20 @@ export class NotesRepository {
   private decryptRow(row: NoteRow): Note | null {
     const result = decrypt(this.key, fromBase64url(row.envelope));
     if (!result.ok) {
-      logger.warn('NotesRepository: decryption failed for note', { id: row.id });
+      logger.warn('NotesRepository: decryption failed for a note');
       return null;
     }
     try {
       const parsed = JSON.parse(fromUtf8(result.value)) as unknown;
       if (!isValidNoteShape(parsed)) {
-        logger.warn('NotesRepository: invalid note shape', { id: row.id });
+        logger.warn('NotesRepository: invalid note shape after decryption');
         return null;
       }
       const note = parsed as Note;
       if (!note.attachments) note.attachments = [];
       return note;
     } catch {
-      logger.warn('NotesRepository: JSON parse failed for note', { id: row.id });
+      logger.warn('NotesRepository: JSON parse failed after decryption');
       return null;
     }
   }

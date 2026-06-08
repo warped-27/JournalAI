@@ -34,16 +34,13 @@ describe('cascadeComplete', () => {
     expect(p2.complete).toHaveBeenCalledTimes(1);
   });
 
-  it('returns Err with combined message when all providers fail', async () => {
+  it('returns Err when all providers fail', async () => {
     const p1 = makeProvider('p1', new Error('err1'));
     const p2 = makeProvider('p2', new Error('err2'));
     const r = await cascadeComplete([p1, p2], 'prompt');
     expect(r.ok).toBe(false);
     if (!r.ok) {
-      expect(r.error.message).toContain('p1');
-      expect(r.error.message).toContain('err1');
-      expect(r.error.message).toContain('p2');
-      expect(r.error.message).toContain('err2');
+      expect(r.error.message).toContain('AI request failed');
     }
   });
 

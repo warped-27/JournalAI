@@ -48,9 +48,14 @@ export async function transcribeAudio(
     return err(new Error(`Network error: ${e instanceof Error ? e.message : String(e)}`));
   }
 
-  let body: any;
+  interface GeminiTranscribeResponse {
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    error?: { message: string; code?: number };
+  }
+
+  let body: GeminiTranscribeResponse;
   try {
-    body = await response.json();
+    body = (await response.json()) as GeminiTranscribeResponse;
   } catch {
     return err(new Error(`Invalid JSON (status ${response.status})`));
   }

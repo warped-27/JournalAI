@@ -1,5 +1,6 @@
 import type { SyncBundle } from '../SyncBundle';
 import { serializeBundle, parseBundle } from '../SyncBundle';
+import { assertSafeUrl } from '../../lib/urlValidation';
 
 export interface WebDavConfig {
   url:      string;   // base URL, e.g. https://cloud.example.com/dav/files/user
@@ -18,6 +19,7 @@ function basicAuth(username: string, password: string): string {
 }
 
 export async function webdavPush(config: WebDavConfig, bundle: SyncBundle): Promise<void> {
+  assertSafeUrl(config.url);
   const res = await fetch(bundleUrl(config), {
     method:  'PUT',
     headers: {
@@ -30,6 +32,7 @@ export async function webdavPush(config: WebDavConfig, bundle: SyncBundle): Prom
 }
 
 export async function webdavPull(config: WebDavConfig): Promise<SyncBundle | null> {
+  assertSafeUrl(config.url);
   const res = await fetch(bundleUrl(config), {
     method:  'GET',
     headers: { 'Authorization': basicAuth(config.username, config.password) },
@@ -41,6 +44,7 @@ export async function webdavPull(config: WebDavConfig): Promise<SyncBundle | nul
 }
 
 export async function testWebDavConnection(config: WebDavConfig): Promise<void> {
+  assertSafeUrl(config.url);
   // PROPFIND on the root to verify credentials and reachability
   const res = await fetch(config.url.replace(/\/+$/, ''), {
     method:  'PROPFIND',
