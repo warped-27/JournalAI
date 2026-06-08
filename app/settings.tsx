@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAi, GEMINI_MODELS } from '../src/ai/AiContext';
+import { useOnDevice } from '../src/ai/onDevice/OnDeviceContext';
 import { testOpenAiCompatConnection } from '../src/ai/providers/openAiCompatProvider';
 import { useSync } from '../src/sync/SyncContext';
 import { useNotes } from '../src/notes/NotesContext';
@@ -15,8 +16,9 @@ import { Colors, Spacing } from '../src/design/tokens';
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const ai    = useAi();
-  const sync  = useSync();
+  const ai       = useAi();
+  const onDevice = useOnDevice();
+  const sync     = useSync();
   const notes = useNotes();
   const [key,   setKey]   = useState(ai.apiKey ?? '');
   const [saved, setSaved] = useState(false);
@@ -247,6 +249,98 @@ export default function SettingsScreen() {
             </Pressable>
           );
         })}
+
+        {/* ─── ON-DEVICE ─── */}
+        <T variant="heading" style={[styles.section, styles.syncHeading]}>ON-DEVICE AI</T>
+        <T variant="muted" style={styles.hint}>
+          Run Gemma 3 4B entirely on this device. No internet required after
+          download. Highest privacy — notes never leave your hardware.
+        </T>
+
+        {onDevice.status === 'unavailable' ? (
+          <T variant="muted" style={styles.hint}>
+            On-device inference is only available on iOS and Android native builds.
+          </T>
+        ) : (
+          <>
+            <T variant="label" style={styles.label}>
+              {onDevice.modelInfo.name}
+            </T>
+            <T variant="muted" style={styles.hint}>
+              {(onDevice.modelInfo.sizeBytes / 1e9).toFixed(1)} GB · Q4_K_M quantisation
+            </T>
+
+            {/* Status badge */}
+            <T
+              variant={onDevice.status === 'loaded' ? 'label' : 'muted'}
+              style={[styles.status, styles.sectionGap]}
+              testID="ondevice-status"
+            >
+              {{
+                'not-downloaded': 'Not downloaded',
+                downloading:      `Downloading… ${Math.round(onDevice.downloadProgress * 100)}%`,
+                'download-error': `Error: ${onDevice.errorMessage ?? 'download failed'}`,
+                ready:            'Downloaded — not loaded',
+                loading:          `Loading model… ${Math.round(onDevice.downloadProgress * 100)}%`,
+                loaded:           'Loaded ✓ — on-device inference active',
+                error:            `Error: ${onDevice.errorMessage ?? 'load failed'}`,
+                unavailable:      '',
+              }[onDevice.status]}
+            </T>
+
+            {/* Actions */}
+            <View style={styles.actions}>
+              {onDevice.status === 'not-downloaded' || onDevice.status === 'download-error' ? (
+                <Btn
+                  label="DOWNLOAD MODEL"
+                  variant="primary"
+                  onPress={onDevice.startDownload}
+                  style={styles.btn}
+                  testID="ondevice-download"
+                />
+              ) : null}
+
+              {onDevice.status === 'downloading' ? (
+                <Btn
+                  label="CANCEL"
+                  variant="danger"
+                  onPress={onDevice.cancelDownload}
+                  style={styles.btn}
+                  testID="ondevice-cancel"
+                />
+              ) : null}
+
+              {onDevice.status === 'ready' || onDevice.status === 'error' ? (
+                <>
+                  <Btn
+                    label="LOAD MODEL"
+                    variant="primary"
+                    onPress={onDevice.loadModel}
+                    style={styles.btn}
+                    testID="ondevice-load"
+                  />
+                  <Btn
+                    label="DELETE"
+                    variant="danger"
+                    onPress={onDevice.deleteLocalModel}
+                    style={styles.btn}
+                    testID="ondevice-delete"
+                  />
+                </>
+              ) : null}
+
+              {onDevice.status === 'loaded' ? (
+                <Btn
+                  label="UNLOAD MODEL"
+                  variant="ghost"
+                  onPress={onDevice.unloadModel}
+                  style={styles.btn}
+                  testID="ondevice-unload"
+                />
+              ) : null}
+            </View>
+          </>
+        )}
 
         {/* ─── OLLAMA ─── */}
         <T variant="heading" style={[styles.section, styles.syncHeading]}>LOCAL AI</T>

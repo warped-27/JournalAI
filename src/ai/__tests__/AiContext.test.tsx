@@ -7,6 +7,9 @@ import { ok, err } from '../../lib/result';
 
 jest.mock('../../crypto/secureSecrets');
 jest.mock('../aiService');
+jest.mock('../onDevice/OnDeviceContext', () => ({
+  useOnDevice: () => ({ provider: null }),
+}));
 
 const mockSecretGet = secureSecrets.secretGet as jest.MockedFunction<typeof secureSecrets.secretGet>;
 const mockSecretSet = secureSecrets.secretSet as jest.MockedFunction<typeof secureSecrets.secretSet>;

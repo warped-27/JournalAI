@@ -14,6 +14,7 @@ import { askAi } from './aiService';
 import { cascadeComplete } from './providerCascade';
 import { makeGeminiProvider } from './providers/geminiProvider';
 import { makeOpenAiCompatProvider } from './providers/openAiCompatProvider';
+import { useOnDevice } from './onDevice/OnDeviceContext';
 import type { AiProvider } from './providers/types';
 
 const AI_APIKEY_KEY       = 'nj_gemini_apikey';
@@ -88,6 +89,7 @@ interface AiContextValue {
 const AiContext = createContext<AiContextValue | null>(null);
 
 export function AiProvider({ children }: { children: ReactNode }) {
+  const onDevice = useOnDevice();
   const [apiKey, setApiKeyState]   = useState<string | null>(null);
   const [model,  setModelState]    = useState<string>(DEFAULT_MODEL);
   const [hasConsented, setHasConsented] = useState(false);
@@ -103,9 +105,12 @@ export function AiProvider({ children }: { children: ReactNode }) {
     resolve: (r: Result<string, Error>) => void;
   } | null>(null);
 
-  // ── Provider list (local-first: Ollama → MLX → Gemini) ────────────────────
+  // ── Provider list (local-first: on-device → Ollama → MLX → Gemini) ────────
   const providers = useMemo((): AiProvider[] => {
     const list: AiProvider[] = [];
+    if (onDevice.provider) {
+      list.push(onDevice.provider);
+    }
     if (ollamaConfig.enabled && ollamaConfig.baseUrl && ollamaConfig.model) {
       list.push(makeOpenAiCompatProvider({
         id:      'ollama',
@@ -124,7 +129,7 @@ export function AiProvider({ children }: { children: ReactNode }) {
       list.push(makeGeminiProvider(apiKey, model));
     }
     return list;
-  }, [ollamaConfig, mlxConfig, apiKey, model]);
+  }, [onDevice.provider, ollamaConfig, mlxConfig, apiKey, model]);
 
   // ── Load persisted settings ────────────────────────────────────────────────
   const loadSettings = useCallback(async () => {
