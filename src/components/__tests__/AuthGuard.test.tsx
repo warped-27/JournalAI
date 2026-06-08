@@ -11,6 +11,14 @@ jest.mock('react-native', () => ({
   ActivityIndicator:    'ActivityIndicator',
   ScrollView:           'ScrollView',
   KeyboardAvoidingView: 'KeyboardAvoidingView',
+  Animated: {
+    Value:    jest.fn().mockImplementation(() => ({ setValue: jest.fn() })),
+    timing:   jest.fn().mockReturnValue({}),
+    sequence: jest.fn().mockReturnValue({}),
+    delay:    jest.fn().mockReturnValue({}),
+    loop:     jest.fn().mockReturnValue({ start: jest.fn(), stop: jest.fn() }),
+    View:     'Animated.View',
+  },
   StyleSheet: {
     create: (s: object) => s,
     flatten: (s: unknown) => s,
@@ -30,6 +38,15 @@ const mockVault = {
 jest.mock('../../crypto/VaultContext', () => ({
   useVault:      () => mockVault,
   VaultProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+jest.mock('../../sync/SyncContext', () => ({
+  useSync:      () => ({ hasConfigured: false, setConfig: jest.fn() }),
+  SyncProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
+jest.mock('../SyncOnboarding', () => ({
+  SyncOnboarding: () => null,
 }));
 
 import { AuthGuard } from '../AuthGuard';
@@ -91,11 +108,11 @@ describe('AuthGuard', () => {
     const inputs = renderer.root.findAll((n) => (n.type as unknown as string) === 'TextInput');
     const btn    = renderer.root.findByProps({ accessibilityRole: 'button' });
     await act(async () => {
-      inputs[0]?.props.onChangeText('mypassword1');
-      inputs[1]?.props.onChangeText('mypassword1');
+      inputs[0]?.props.onChangeText('mypassword1234');
+      inputs[1]?.props.onChangeText('mypassword1234');
     });
     await act(async () => { btn.props.onPress(); });
-    expect(mockVault.create).toHaveBeenCalledWith('mypassword1');
+    expect(mockVault.create).toHaveBeenCalledWith('mypassword1234');
   });
 
   it('unlock screen calls vault.unlock on submit', async () => {

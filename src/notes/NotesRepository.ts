@@ -4,6 +4,18 @@ import { encrypt, decrypt } from '../crypto/cipher';
 import { toBase64url, fromBase64url, toUtf8, fromUtf8 } from '../crypto/encoding';
 import { logger } from '../lib/logger';
 
+function isValidNoteShape(n: unknown): boolean {
+  if (typeof n !== 'object' || n === null) return false;
+  const o = n as Record<string, unknown>;
+  return (
+    typeof o['id'] === 'string' && o['id'].length > 0 &&
+    typeof o['title'] === 'string' &&
+    typeof o['content'] === 'string' &&
+    typeof o['createdAt'] === 'number' &&
+    typeof o['updatedAt'] === 'number'
+  );
+}
+
 export class NotesRepository {
   constructor(private db: Database, private key: Uint8Array) {}
 
@@ -59,16 +71,20 @@ export class NotesRepository {
   private decryptRow(row: NoteRow): Note | null {
     const result = decrypt(this.key, fromBase64url(row.envelope));
     if (!result.ok) {
-      logger.warn('NotesRepository: decryption failed for note', { id: row.id });
+      logger.warn('NotesRepository: decryption failed for a note');
       return null;
     }
     try {
-      const note = JSON.parse(fromUtf8(result.value)) as Note;
-      // Backward-compat: old notes stored before attachments were added
+      const parsed = JSON.parse(fromUtf8(result.value)) as unknown;
+      if (!isValidNoteShape(parsed)) {
+        logger.warn('NotesRepository: invalid note shape after decryption');
+        return null;
+      }
+      const note = parsed as Note;
       if (!note.attachments) note.attachments = [];
       return note;
     } catch {
-      logger.warn('NotesRepository: JSON parse failed for note', { id: row.id });
+      logger.warn('NotesRepository: JSON parse failed after decryption');
       return null;
     }
   }

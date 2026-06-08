@@ -30,9 +30,18 @@ function makeAiCtx(overrides: Partial<ReturnType<typeof useAi>> = {}): ReturnTyp
     setModel:           jest.fn(),
     hasConsented:       true,
     giveConsent:        jest.fn(),
+    declineConsent:     jest.fn(),
     pendingConsent:     false,
     requestWithConsent: jest.fn(),
+    doComplete:         jest.fn(),
     isLoading:          false,
+    autoEnrich:         false,
+    setAutoEnrich:      jest.fn(),
+    hasAnyProvider:     true,
+    ollamaConfig:       { enabled: false, baseUrl: 'http://localhost:11434', model: 'llama3.2:3b' },
+    mlxConfig:          { enabled: false, baseUrl: 'http://localhost:8080',  model: 'mlx-community/Llama-3.2-3B-Instruct-4bit' },
+    setOllamaConfig:    jest.fn(),
+    setMlxConfig:       jest.fn(),
     ...overrides,
   };
 }

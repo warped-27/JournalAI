@@ -7,6 +7,9 @@ import { ok, err } from '../../lib/result';
 
 jest.mock('../../crypto/secureSecrets');
 jest.mock('../aiService');
+jest.mock('../onDevice/OnDeviceContext', () => ({
+  useOnDevice: () => ({ provider: null }),
+}));
 
 const mockSecretGet = secureSecrets.secretGet as jest.MockedFunction<typeof secureSecrets.secretGet>;
 const mockSecretSet = secureSecrets.secretSet as jest.MockedFunction<typeof secureSecrets.secretSet>;
@@ -80,7 +83,7 @@ describe('AiContext', () => {
     expect(mockSecretDelete).toHaveBeenCalledWith('nj_gemini_apikey');
   });
 
-  it('requestWithConsent returns err when no apiKey', async () => {
+  it('requestWithConsent returns err when no providers configured', async () => {
     let ctx!: ReturnType<typeof useAi>;
     await act(async () => {
       renderWithProvider((v) => (ctx = v));
@@ -90,7 +93,7 @@ describe('AiContext', () => {
       result = await ctx.requestWithConsent('content', 'summarize');
     });
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.message).toContain('No API key');
+    if (!result.ok) expect(result.error.message).toContain('No AI providers');
   });
 
   it('requestWithConsent triggers pendingConsent when no consent yet', async () => {

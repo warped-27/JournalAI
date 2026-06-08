@@ -1,32 +1,97 @@
-import { Platform } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
+import { isTauri } from '../platform/detect';
 
 /**
- * Platform-agnostic secure key-value store.
- * - Native (iOS/Android): backed by OS Keychain / Android Keystore via expo-secure-store.
- * - Web: falls back to localStorage (no hardware-backed storage available in browsers).
- *   Cryptographic protection on web comes from the vault layer above.
+ * Secure key-value store — web/Tauri variant.
+ * Metro automatically selects secureSecrets.native.ts for iOS/Android builds.
+ *
+ * Priority order:
+ *   1. Tauri desktop → OS keychain via Rust `keyring` crate (invoke commands)
+ *   2. Web browser  → sessionStorage for plaintext secrets; vault keys throw (not allowed in browser)
+ *
+ * The web browser path exists only as a developer/fallback surface.
+ * The production targets are Tauri (desktop) and EAS native (mobile).
  */
 
-export async function secretGet(key: string): Promise<string | null> {
-  if (Platform.OS === 'web') {
-    return localStorage.getItem(key);
+// ─── Tauri — OS keychain via custom Rust commands ───────────────────────────
+
+async function tauriGet(key: string): Promise<string | null> {
+  const { invoke } = await import('@tauri-apps/api/core');
+  return invoke<string | null>('get_secret', { key });
+}
+
+async function tauriSet(key: string, value: string): Promise<void> {
+  const { invoke } = await import('@tauri-apps/api/core');
+  return invoke<void>('set_secret', { key, value });
+}
+
+async function tauriDelete(key: string): Promise<void> {
+  const { invoke } = await import('@tauri-apps/api/core');
+  return invoke<void>('delete_secret', { key });
+}
+
+// ─── Browser fallback ────────────────────────────────────────────────────────
+
+// Vault-critical keys must never be persisted in browser localStorage.
+// They are only safe inside the OS keychain (Tauri) or the device secure enclave (native).
+const VAULT_CRITICAL_KEYS = new Set(['nj_vault_salt', 'nj_vault_verifier']);
+
+// Plaintext secrets use sessionStorage (not persisted across browser sessions)
+const SESSION_STORAGE_KEYS = new Set(['nj_gemini_apikey']);
+
+const _sessionStorage: Storage | null = (() => {
+  try { return typeof sessionStorage !== 'undefined' ? sessionStorage : null; }
+  catch { return null; }
+})();
+
+function webGet(key: string): string | null {
+  if (SESSION_STORAGE_KEYS.has(key) && _sessionStorage) {
+    const val = _sessionStorage.getItem(key);
+    if (val !== null) return val;
+    // Migrate from localStorage if set by an older version
+    const legacy = localStorage.getItem(key);
+    if (legacy !== null) {
+      _sessionStorage.setItem(key, legacy);
+      localStorage.removeItem(key);
+      return legacy;
+    }
+    return null;
   }
-  return SecureStore.getItemAsync(key);
+  return localStorage.getItem(key);
+}
+
+function webSet(key: string, value: string): void {
+  if (VAULT_CRITICAL_KEYS.has(key)) {
+    throw new Error(
+      'Vault storage requires a secure keychain — ' +
+      'please use the Tauri desktop app or a native iOS/Android build.',
+    );
+  }
+  const store = (SESSION_STORAGE_KEYS.has(key) && _sessionStorage)
+    ? _sessionStorage
+    : localStorage;
+  store.setItem(key, value);
+}
+
+function webDelete(key: string): void {
+  if (SESSION_STORAGE_KEYS.has(key) && _sessionStorage) {
+    _sessionStorage.removeItem(key);
+  }
+  localStorage.removeItem(key);
+}
+
+// ─── Public API ──────────────────────────────────────────────────────────────
+
+export async function secretGet(key: string): Promise<string | null> {
+  if (isTauri()) return tauriGet(key);
+  return webGet(key);
 }
 
 export async function secretSet(key: string, value: string): Promise<void> {
-  if (Platform.OS === 'web') {
-    localStorage.setItem(key, value);
-    return;
-  }
-  return SecureStore.setItemAsync(key, value);
+  if (isTauri()) return tauriSet(key, value);
+  webSet(key, value);
 }
 
 export async function secretDelete(key: string): Promise<void> {
-  if (Platform.OS === 'web') {
-    localStorage.removeItem(key);
-    return;
-  }
-  return SecureStore.deleteItemAsync(key);
+  if (isTauri()) return tauriDelete(key);
+  webDelete(key);
 }

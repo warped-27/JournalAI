@@ -1,24 +1,25 @@
 /**
- * Tests run in jsdom (web) environment — expo-secure-store is not available,
- * so secureSecrets falls through to the localStorage path on web.
+ * jest-expo resolves secureSecrets.native.ts (expo-secure-store path),
+ * so these tests exercise that path with an in-memory mock.
  */
 import { secretGet, secretSet, secretDelete } from '../secureSecrets';
+import * as SecureStoreMock from 'expo-secure-store';
 
-// expo-secure-store is a native module — mock it so Jest doesn't try to load native code
-jest.mock('expo-secure-store', () => ({
-  getItemAsync:    jest.fn(),
-  setItemAsync:    jest.fn(),
-  deleteItemAsync: jest.fn(),
-}));
+jest.mock('expo-secure-store', () => {
+  const store: Record<string, string> = {};
+  return {
+    getItemAsync:    jest.fn(async (key: string) => store[key] ?? null),
+    setItemAsync:    jest.fn(async (key: string, v: string) => { store[key] = v; }),
+    deleteItemAsync: jest.fn(async (key: string) => { delete store[key]; }),
+    __clear:         () => { Object.keys(store).forEach(k => delete store[k]); },
+  };
+});
 
-// Force web platform so we exercise the localStorage branch
-jest.mock('react-native', () => ({
-  Platform: { OS: 'web' },
-}));
+beforeEach(() => {
+  (SecureStoreMock as any).__clear();
+});
 
-beforeEach(() => localStorage.clear());
-
-describe('secureSecrets (web / localStorage path)', () => {
+describe('secureSecrets (native / expo-secure-store path)', () => {
   it('returns null for unknown key', async () => {
     expect(await secretGet('missing')).toBeNull();
   });

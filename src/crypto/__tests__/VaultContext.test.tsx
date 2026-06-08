@@ -2,14 +2,19 @@ import React, { act } from 'react';
 import TestRenderer from 'react-test-renderer';
 import { VaultProvider, useVault } from '../VaultContext';
 import type { Result } from '../../lib/result';
+import * as SecureStoreMock from 'expo-secure-store';
 
 type UnlockResult = Result<void>;
 
-jest.mock('expo-secure-store', () => ({
-  getItemAsync:    jest.fn(),
-  setItemAsync:    jest.fn(),
-  deleteItemAsync: jest.fn(),
-}));
+jest.mock('expo-secure-store', () => {
+  const store: Record<string, string> = {};
+  return {
+    getItemAsync:    jest.fn(async (key: string) => store[key] ?? null),
+    setItemAsync:    jest.fn(async (key: string, v: string) => { store[key] = v; }),
+    deleteItemAsync: jest.fn(async (key: string) => { delete store[key]; }),
+    __clear:         () => { Object.keys(store).forEach(k => delete store[k]); },
+  };
+});
 
 jest.mock('react-native', () => ({
   Platform:  { OS: 'web' },
@@ -21,7 +26,10 @@ jest.mock('../kdf', () => {
   return { ...actual, KDF_PARAMS: { t: 1, m: 256, p: 1 } };
 });
 
-beforeEach(() => localStorage.clear());
+beforeEach(() => {
+  localStorage.clear();
+  (SecureStoreMock as any).__clear();
+});
 
 // ---------- helpers ----------
 
