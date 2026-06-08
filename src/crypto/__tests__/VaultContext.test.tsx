@@ -3,6 +3,7 @@ import TestRenderer from 'react-test-renderer';
 import { VaultProvider, useVault } from '../VaultContext';
 import type { Result } from '../../lib/result';
 import * as SecureStoreMock from 'expo-secure-store';
+import * as biometric from '../biometricUnlock';
 
 type UnlockResult = Result<void>;
 
@@ -19,6 +20,13 @@ jest.mock('expo-secure-store', () => {
 jest.mock('react-native', () => ({
   Platform:  { OS: 'web' },
   AppState:  { addEventListener: jest.fn(() => ({ remove: jest.fn() })) },
+}));
+
+jest.mock('../biometricUnlock', () => ({
+  isBiometricsAvailable: jest.fn(async () => true),
+  storeBiometricKey:     jest.fn(async () => {}),
+  retrieveBiometricKey:  jest.fn(async () => new Uint8Array(32).fill(7)),
+  deleteBiometricKey:    jest.fn(async () => {}),
 }));
 
 jest.mock('../kdf', () => {
@@ -118,5 +126,58 @@ describe('VaultContext', () => {
 
     expect(captured!.isInitialised).toBe(false);
     expect(captured!.isUnlocked).toBe(false);
+  });
+
+  it('biometricAvailable reflects isBiometricsAvailable()', async () => {
+    makeTree();
+    await act(async () => {});
+    expect(captured!.biometricAvailable).toBe(true);
+  });
+
+  it('unlockWithBiometrics succeeds when key is returned', async () => {
+    makeTree();
+    await act(async () => {});
+
+    let res!: Result<void>;
+    await act(async () => { res = await captured!.unlockWithBiometrics(); });
+
+    expect(res.ok).toBe(true);
+    expect(captured!.isUnlocked).toBe(true);
+    expect(captured!.getKey()).toBeInstanceOf(Uint8Array);
+  });
+
+  it('unlockWithBiometrics fails when retrieveBiometricKey returns null', async () => {
+    jest.mocked(biometric.retrieveBiometricKey).mockResolvedValueOnce(null);
+
+    makeTree();
+    await act(async () => {});
+
+    let res!: Result<void>;
+    await act(async () => { res = await captured!.unlockWithBiometrics(); });
+
+    expect(res.ok).toBe(false);
+    expect(captured!.isUnlocked).toBe(false);
+  });
+
+  it('enableBiometrics stores key and sets biometricEnabled', async () => {
+    makeTree();
+    await act(async () => {});
+    await act(async () => { await captured!.create('mypassword'); });
+
+    await act(async () => { await captured!.enableBiometrics(); });
+
+    expect(biometric.storeBiometricKey).toHaveBeenCalled();
+    expect(captured!.biometricEnabled).toBe(true);
+  });
+
+  it('disableBiometrics removes key and clears biometricEnabled', async () => {
+    makeTree();
+    await act(async () => {});
+    await act(async () => { await captured!.create('mypassword'); });
+    await act(async () => { await captured!.enableBiometrics(); });
+    await act(async () => { await captured!.disableBiometrics(); });
+
+    expect(biometric.deleteBiometricKey).toHaveBeenCalled();
+    expect(captured!.biometricEnabled).toBe(false);
   });
 });

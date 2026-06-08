@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, KeyboardAvoidingView, ScrollView,
   StyleSheet, Platform,
@@ -138,6 +138,12 @@ function UnlockScreen() {
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
 
+  // Auto-trigger biometric prompt on mount if the user has it enabled
+  useEffect(() => {
+    if (vault.biometricEnabled) handleBiometricUnlock();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function handleUnlock() {
     if (!password) return;
     setError('');
@@ -145,6 +151,14 @@ function UnlockScreen() {
     const result = await vault.unlock(password);
     setLoading(false);
     if (!result.ok) setError('Wrong password.');
+  }
+
+  async function handleBiometricUnlock() {
+    setError('');
+    setLoading(true);
+    const result = await vault.unlockWithBiometrics();
+    setLoading(false);
+    if (!result.ok) setError(result.error);
   }
 
   return (
@@ -158,21 +172,33 @@ function UnlockScreen() {
         onChangeText={setPassword}
         placeholder="master password"
         secureTextEntry
-        autoFocus
+        autoFocus={!vault.biometricEnabled}
         onSubmitEditing={handleUnlock}
         style={styles.input}
         hasError={!!error}
         testID="input-password"
       />
 
-      {error ? <T variant="error">{error}</T> : null}
+      {error ? <T variant="error" testID="unlock-error">{error}</T> : null}
 
       <Btn
         label="UNLOCK"
         onPress={handleUnlock}
-        loading={loading}
+        loading={loading && !vault.biometricEnabled}
         style={styles.btn}
+        testID="unlock-btn"
       />
+
+      {vault.biometricEnabled && (
+        <Btn
+          variant="ghost"
+          label="USE BIOMETRICS"
+          onPress={handleBiometricUnlock}
+          loading={loading && vault.biometricEnabled}
+          style={styles.biometricBtn}
+          testID="biometric-unlock-btn"
+        />
+      )}
     </Shell>
   );
 }
@@ -214,8 +240,9 @@ const styles = StyleSheet.create({
   },
   title: { marginBottom: Spacing.lg },
   hint:  { marginBottom: Spacing.lg },
-  input: { marginBottom: Spacing.md },
-  btn:   { marginTop: Spacing.md },
+  input:        { marginBottom: Spacing.md },
+  btn:          { marginTop: Spacing.md },
+  biometricBtn: { marginTop: Spacing.sm },
   platformBlock: {
     borderLeftWidth: 2,
     borderLeftColor: Colors.border,
