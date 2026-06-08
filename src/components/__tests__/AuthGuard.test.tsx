@@ -49,7 +49,14 @@ jest.mock('../SyncOnboarding', () => ({
   SyncOnboarding: () => null,
 }));
 
+// Default: simulate Tauri desktop so vault screens are reachable
+jest.mock('../../platform/detect', () => ({
+  isTauri:          jest.fn(() => true),
+  isNativePlatform: jest.fn(() => false),
+}));
+
 import { AuthGuard } from '../AuthGuard';
+import * as detect from '../../platform/detect';
 
 beforeEach(() => {
   mockVault.isInitialised = null;
@@ -57,6 +64,17 @@ beforeEach(() => {
 });
 
 describe('AuthGuard', () => {
+  it('renders unsupported platform screen when not Tauri and not native', async () => {
+    (detect.isTauri as jest.Mock).mockReturnValueOnce(false);
+    (detect.isNativePlatform as jest.Mock).mockReturnValueOnce(false);
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = TestRenderer.create(<AuthGuard><>child</></AuthGuard>);
+    });
+    const json = JSON.stringify(renderer.toJSON());
+    expect(json).toMatch(/INSTALL|keychain|browser/i);
+  });
+
   it('renders null while vault state loading (isInitialised === null)', async () => {
     mockVault.isInitialised = null;
     let renderer!: TestRenderer.ReactTestRenderer;
