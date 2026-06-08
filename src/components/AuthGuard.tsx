@@ -3,15 +3,16 @@ import {
   View, KeyboardAvoidingView, ScrollView,
   StyleSheet, Platform,
 } from 'react-native';
-import { useVault }        from '../crypto/VaultContext';
-import { useSync }         from '../sync/SyncContext';
-import { T }               from '../design/components/T';
-import { Box }             from '../design/components/Box';
-import { Input }           from '../design/components/Input';
-import { Btn }             from '../design/components/Btn';
-import { NerdLogo }        from './NerdLogo';
-import { SyncOnboarding }  from './SyncOnboarding';
-import { Colors, Spacing } from '../design/tokens';
+import { useVault }            from '../crypto/VaultContext';
+import { useSync }             from '../sync/SyncContext';
+import { T }                   from '../design/components/T';
+import { Box }                 from '../design/components/Box';
+import { Input }               from '../design/components/Input';
+import { Btn }                 from '../design/components/Btn';
+import { NerdLogo }            from './NerdLogo';
+import { SyncOnboarding }      from './SyncOnboarding';
+import { Colors, Spacing }     from '../design/tokens';
+import { isTauri, isNativePlatform } from '../platform/detect';
 
 interface Props {
   children: React.ReactNode;
@@ -19,6 +20,9 @@ interface Props {
 
 export function AuthGuard({ children }: Props) {
   const vault = useVault();
+
+  // Require a secure keychain — block unsupported runtimes before vault ops
+  if (!isTauri() && !isNativePlatform()) return <UnsupportedPlatformScreen />;
 
   // Not yet checked whether vault exists
   if (vault.isInitialised === null) return null;
@@ -31,6 +35,29 @@ export function AuthGuard({ children }: Props) {
 
   // Key in RAM — render protected content
   return <>{children}</>;
+}
+
+// ---------- Unsupported platform screen ----------
+
+function UnsupportedPlatformScreen() {
+  return (
+    <Shell title="INSTALL REQUIRED">
+      <T variant="muted" style={styles.hint}>
+        NERD_JOURNAL_ requires a local installation to keep your notes encrypted and private.
+      </T>
+      <T variant="muted" style={styles.hint}>
+        Running in a web browser is not supported — the OS keychain needed to protect your vault is not available here.
+      </T>
+      <View style={styles.platformBlock}>
+        <T variant="kicker" style={styles.platformLabel}>DESKTOP</T>
+        <T variant="muted">Download the Tauri app for Windows, macOS, or Linux.</T>
+      </View>
+      <View style={styles.platformBlock}>
+        <T variant="kicker" style={styles.platformLabel}>MOBILE</T>
+        <T variant="muted">Install the iOS or Android build via EAS.</T>
+      </View>
+    </Shell>
+  );
 }
 
 // ---------- Setup screen ----------
@@ -189,4 +216,11 @@ const styles = StyleSheet.create({
   hint:  { marginBottom: Spacing.lg },
   input: { marginBottom: Spacing.md },
   btn:   { marginTop: Spacing.md },
+  platformBlock: {
+    borderLeftWidth: 2,
+    borderLeftColor: Colors.border,
+    paddingLeft:     Spacing.md,
+    marginBottom:    Spacing.lg,
+  },
+  platformLabel: { marginBottom: Spacing.xs },
 });
