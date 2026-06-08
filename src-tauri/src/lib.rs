@@ -16,6 +16,8 @@ const ALLOWED_KEYS: &[&str] = &[
     "nj_mlx_config",
     "nj_sync_config",
     "nj_device_id",
+    "nj_biometric_enabled",
+    "nj_custom_config",
 ];
 
 fn validate_key(key: &str) -> Result<(), String> {

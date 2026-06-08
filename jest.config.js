@@ -14,5 +14,7 @@ module.exports = {
     '^@noble/ciphers/([^.]+)$':   '<rootDir>/node_modules/@noble/ciphers/$1.js',
     // @testing-library/react-native resolves react-test-renderer as "test-renderer"
     '^test-renderer$': '<rootDir>/node_modules/react-test-renderer',
+    // whisper.rn uses an "exports" map without a "." entry — point Jest at the CJS index
+    '^whisper\\.rn$': '<rootDir>/node_modules/whisper.rn/lib/commonjs/index.js',
   },
 };

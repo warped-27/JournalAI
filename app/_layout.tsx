@@ -11,6 +11,7 @@ import '../src/lib/polyfills';
 import { VaultProvider }    from '../src/crypto/VaultContext';
 import { AuthGuard }        from '../src/components/AuthGuard';
 import { OnDeviceProvider } from '../src/ai/onDevice/OnDeviceContext';
+import { WhisperProvider }  from '../src/ai/whisper/WhisperContext';
 import { AiProvider }       from '../src/ai/AiContext';
 import { NotesProvider }    from '../src/notes/NotesContext';
 import { SyncProvider }     from '../src/sync/SyncContext';
@@ -40,6 +41,7 @@ export default function RootLayout() {
   return (
     <VaultProvider>
       <OnDeviceProvider>
+      <WhisperProvider>
       <AiProvider>
         <SyncProvider>
         <AuthGuard>
@@ -53,6 +55,7 @@ export default function RootLayout() {
         </AuthGuard>
         </SyncProvider>
       </AiProvider>
+      </WhisperProvider>
       </OnDeviceProvider>
     </VaultProvider>
   );

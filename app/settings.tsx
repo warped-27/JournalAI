@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useVault } from '../src/crypto/VaultContext';
 import { useAi, GEMINI_MODELS } from '../src/ai/AiContext';
 import { useOnDevice } from '../src/ai/onDevice/OnDeviceContext';
+import { useWhisper } from '../src/ai/whisper/WhisperContext';
 import { testOpenAiCompatConnection } from '../src/ai/providers/openAiCompatProvider';
 import { useSync } from '../src/sync/SyncContext';
 import { useNotes } from '../src/notes/NotesContext';
@@ -16,8 +18,10 @@ import { Colors, Spacing } from '../src/design/tokens';
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const vault    = useVault();
   const ai       = useAi();
   const onDevice = useOnDevice();
+  const whisper  = useWhisper();
   const sync     = useSync();
   const notes = useNotes();
   const [key,   setKey]   = useState(ai.apiKey ?? '');
@@ -36,6 +40,14 @@ export default function SettingsScreen() {
   const [mlxModel,   setMlxModel]   = useState(ai.mlxConfig.model);
   const [mlxTesting, setMlxTesting] = useState(false);
   const [mlxStatus,  setMlxStatus]  = useState('');
+
+  // Custom provider form state
+  const [customEnabled, setCustomEnabled] = useState(ai.customConfig.enabled);
+  const [customUrl,     setCustomUrl]     = useState(ai.customConfig.baseUrl);
+  const [customModel,   setCustomModel]   = useState(ai.customConfig.model);
+  const [customName,    setCustomName]    = useState(ai.customConfig.name);
+  const [customTesting, setCustomTesting] = useState(false);
+  const [customStatus,  setCustomStatus]  = useState('');
 
   // WebDAV form state (seeded from stored config)
   const wdCfg  = sync.config.provider === 'webdav' ? sync.config.webdav : undefined;
@@ -86,6 +98,27 @@ export default function SettingsScreen() {
       setMlxStatus(e instanceof Error ? e.message : 'Connection test failed');
     } finally {
       setMlxTesting(false);
+    }
+  }
+
+  async function handleCustomSave() {
+    const url = customUrl.trim();
+    if (!url) return;
+    setCustomTesting(true);
+    setCustomStatus('');
+    try {
+      if (customEnabled) await testOpenAiCompatConnection(url);
+      await ai.setCustomConfig({
+        enabled: customEnabled,
+        baseUrl: url,
+        model: customModel.trim(),
+        name:  customName.trim() || 'Custom',
+      });
+      setCustomStatus(customEnabled ? 'Custom provider configured ✓' : 'Custom provider disabled ✓');
+    } catch (e) {
+      setCustomStatus(e instanceof Error ? e.message : 'Connection test failed');
+    } finally {
+      setCustomTesting(false);
     }
   }
 
@@ -463,6 +496,188 @@ export default function SettingsScreen() {
             {mlxStatus}
           </T>
         ) : null}
+
+        {/* ─── CUSTOM PROVIDER ─── */}
+        <T variant="label" style={[styles.label, styles.modelTitle]}>CUSTOM (LITELLM / OPENAI-COMPATIBLE)</T>
+        <T variant="muted" style={styles.hint}>
+          Point to any OpenAI-compatible endpoint: LiteLLM proxy, vLLM, LocalAI, or similar.
+        </T>
+        <Input
+          value={customName}
+          onChangeText={setCustomName}
+          placeholder="Custom (LiteLLM / OpenAI-compatible)"
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={styles.input}
+          testID="custom-name"
+        />
+        <Pressable
+          style={[styles.toggleRow, customEnabled && styles.toggleRowActive]}
+          onPress={() => setCustomEnabled(!customEnabled)}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: customEnabled }}
+          testID="custom-toggle"
+        >
+          <View style={[styles.radio, customEnabled && styles.radioActive]} />
+          <T variant={customEnabled ? 'label' : 'muted'} style={styles.modelLabel}>
+            {customEnabled ? 'ENABLED' : 'DISABLED'}
+          </T>
+        </Pressable>
+        <Input
+          value={customUrl}
+          onChangeText={setCustomUrl}
+          placeholder="http://localhost:4000"
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="url"
+          style={styles.input}
+          testID="custom-url"
+        />
+        <Input
+          value={customModel}
+          onChangeText={setCustomModel}
+          placeholder="gpt-4o-mini"
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={styles.input}
+          testID="custom-model"
+        />
+        <Btn
+          label={customTesting ? 'TESTING…' : 'SAVE CUSTOM'}
+          variant="primary"
+          onPress={handleCustomSave}
+          loading={customTesting}
+          style={[styles.btn, styles.fullBtn]}
+          testID="custom-save"
+        />
+        {customStatus ? (
+          <T
+            variant={customStatus.includes('✓') ? 'label' : 'error'}
+            style={[styles.status, styles.sectionGap]}
+            testID="custom-status"
+          >
+            {customStatus}
+          </T>
+        ) : null}
+
+        {/* ─── WHISPER ─── */}
+        <T variant="heading" style={[styles.section, styles.syncHeading]}>LOCAL TRANSCRIPTION</T>
+        <T variant="muted" style={styles.hint}>
+          Whisper Small runs entirely on your device — audio never leaves.
+          After download, transcription works offline.
+        </T>
+
+        {whisper.status === 'unavailable' ? (
+          <T variant="muted" style={styles.hint}>
+            Local Whisper is only available on iOS and Android native builds.
+          </T>
+        ) : (
+          <>
+            <T
+              variant={whisper.status === 'loaded' ? 'label' : 'muted'}
+              style={[styles.status, styles.sectionGap]}
+              testID="whisper-status"
+            >
+              {{
+                'not-downloaded': 'Whisper Small — not downloaded (244 MB)',
+                downloading:      `Downloading… ${Math.round(whisper.downloadProgress * 100)}%`,
+                'download-error': `Error: ${whisper.errorMessage ?? 'download failed'}`,
+                ready:            'Whisper Small — downloaded, not loaded',
+                loading:          'Loading Whisper model…',
+                loaded:           'Whisper Small — loaded ✓ (on-device transcription active)',
+                error:            `Error: ${whisper.errorMessage ?? 'load failed'}`,
+                unavailable:      '',
+              }[whisper.status]}
+            </T>
+
+            <View style={styles.actions}>
+              {(whisper.status === 'not-downloaded' || whisper.status === 'download-error') && (
+                <Btn
+                  label="DOWNLOAD WHISPER"
+                  variant="primary"
+                  onPress={whisper.startDownload}
+                  style={styles.btn}
+                  testID="whisper-download"
+                />
+              )}
+              {whisper.status === 'downloading' && (
+                <Btn
+                  label="CANCEL"
+                  variant="danger"
+                  onPress={whisper.cancelDownload}
+                  style={styles.btn}
+                  testID="whisper-cancel"
+                />
+              )}
+              {(whisper.status === 'ready' || whisper.status === 'error') && (
+                <>
+                  <Btn
+                    label="LOAD MODEL"
+                    variant="primary"
+                    onPress={whisper.loadModel}
+                    style={styles.btn}
+                    testID="whisper-load"
+                  />
+                  <Btn
+                    label="DELETE"
+                    variant="danger"
+                    onPress={whisper.deleteLocalModel}
+                    style={styles.btn}
+                    testID="whisper-delete"
+                  />
+                </>
+              )}
+              {whisper.status === 'loaded' && (
+                <Btn
+                  label="UNLOAD MODEL"
+                  variant="ghost"
+                  onPress={whisper.unloadModel}
+                  style={styles.btn}
+                  testID="whisper-unload"
+                />
+              )}
+            </View>
+          </>
+        )}
+
+        {/* ─── SECURITY ─── */}
+        {vault.biometricAvailable && (
+          <>
+            <T variant="heading" style={[styles.section, styles.syncHeading]}>SECURITY</T>
+
+            <T variant="label" style={styles.label}>BIOMETRIC UNLOCK</T>
+            <T variant="muted" style={styles.hint}>
+              {vault.biometricEnabled
+                ? 'Face ID / Fingerprint unlock is active. The vault key is protected by your device secure enclave.'
+                : 'Enable Face ID or Fingerprint unlock. Your vault key is stored in the device secure enclave — it never leaves the device.'}
+            </T>
+
+            {vault.biometricEnabled ? (
+              <Btn
+                label="DISABLE BIOMETRICS"
+                variant="danger"
+                onPress={vault.disableBiometrics}
+                style={[styles.btn, styles.fullBtn]}
+                testID="settings-biometric-disable"
+              />
+            ) : (
+              <Btn
+                label="ENABLE BIOMETRICS"
+                variant="primary"
+                onPress={vault.enableBiometrics}
+                style={[styles.btn, styles.fullBtn]}
+                testID="settings-biometric-enable"
+                disabled={!vault.isUnlocked}
+              />
+            )}
+
+            {!vault.isUnlocked && !vault.biometricEnabled && (
+              <T variant="muted" style={styles.hint}>
+                Unlock the vault first to enable biometrics.
+              </T>
+            )}
+          </>
+        )}
 
         {/* ─── SYNC ─── */}
         <T variant="heading" style={[styles.section, styles.syncHeading]}>
