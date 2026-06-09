@@ -42,6 +42,8 @@ function makeAiCtx(overrides: Partial<ReturnType<typeof useAi>> = {}): ReturnTyp
     mlxConfig:          { enabled: false, baseUrl: 'http://localhost:8080',  model: 'mlx-community/Llama-3.2-3B-Instruct-4bit' },
     setOllamaConfig:    jest.fn(),
     setMlxConfig:       jest.fn(),
+    customConfig:       { enabled: false, baseUrl: 'http://localhost:4000', model: 'gpt-4o-mini', name: 'Custom' },
+    setCustomConfig:    jest.fn(),
     ...overrides,
   };
 }

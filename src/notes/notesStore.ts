@@ -10,7 +10,7 @@ interface NotesState {
 
 interface NotesActions {
   loadNotes:  () => Promise<void>;
-  createNote: (draft: Pick<Note, 'title' | 'content'>) => Promise<Note>;
+  createNote: (draft: Pick<Note, 'title' | 'content'> & { attachments?: Note['attachments'] }) => Promise<Note>;
   updateNote: (id: string, patch: Pick<Note, 'title' | 'content'> & { attachments?: Note['attachments'] }) => Promise<void>;
   patchNote:  (id: string, patch: Partial<Pick<Note, 'tags' | 'summary' | 'palette'>>) => Promise<void>;
   deleteNote: (id: string) => Promise<void>;
@@ -31,7 +31,7 @@ export function createNotesStore(repo: NotesRepository) {
 
     async createNote(draft) {
       const now  = Date.now();
-      const note: Note = { id: newId(), title: draft.title, content: draft.content, attachments: [], createdAt: now, updatedAt: now };
+      const note: Note = { id: newId(), title: draft.title, content: draft.content, attachments: draft.attachments ?? [], createdAt: now, updatedAt: now };
       await repo.insert(note);
       set((s) => ({ notes: [note, ...s.notes] }));
       return note;

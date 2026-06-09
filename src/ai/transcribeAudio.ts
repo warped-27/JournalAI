@@ -2,25 +2,6 @@ import type { Result } from '../lib/result';
 import { ok, err } from '../lib/result';
 import { DEFAULT_GEMINI_MODEL } from './geminiService';
 
-/**
- * Transcription cascade: on-device Whisper → Gemini cloud.
- * Pass `whisperFn` from WhisperContext.transcribe when available.
- */
-export async function transcribeAudioWithFallback(
-  audioPath: string,
-  base64Audio: string,
-  mimeType: string,
-  whisperFn: ((path: string) => Promise<string | null>) | null,
-  apiKey: string,
-  model?: string,
-): Promise<Result<string, Error>> {
-  if (whisperFn) {
-    const text = await whisperFn(audioPath);
-    if (text) return ok(text);
-  }
-  return transcribeAudio(base64Audio, mimeType, apiKey, model);
-}
-
 const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 const RATE_WINDOW_MS = 60_000;

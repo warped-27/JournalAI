@@ -13,10 +13,10 @@ class FakeFileReader {
   result = 'data:text/plain;base64,aGVsbG8=';
   readAsDataURL(_blob: Blob) { setTimeout(() => this.onload?.(), 0); }
 }
-global.FileReader = FakeFileReader as unknown as typeof FileReader;
-global.fetch = jest.fn().mockResolvedValue({
+(globalThis as unknown as Record<string, unknown>).FileReader = FakeFileReader;
+(globalThis as unknown as Record<string, unknown>).fetch = jest.fn().mockResolvedValue({
   blob: () => Promise.resolve({} as Blob),
-}) as unknown as typeof fetch;
+});
 
 import { pickFile } from '../pickFile';
 

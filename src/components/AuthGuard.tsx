@@ -83,6 +83,8 @@ function SetupScreen() {
     setError('');
     setLoading(true);
     const result = await vault.create(password);
+    setPassword('');
+    setConfirm('');
     setLoading(false);
     if (!result.ok) { setError(result.error); return; }
     if (!sync.hasConfigured) setShowOnboarding(true);
@@ -149,6 +151,7 @@ function UnlockScreen() {
     setError('');
     setLoading(true);
     const result = await vault.unlock(password);
+    setPassword('');
     setLoading(false);
     if (!result.ok) setError('Wrong password.');
   }

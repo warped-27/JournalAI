@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     borderColor:  Colors.border,
   },
   thumbnailPlaceholder: {
-    backgroundColor: Colors.surface ?? '#1a1a1a',
+    backgroundColor: Colors.bgPanel,
     alignItems:      'center',
     justifyContent:  'center',
   },

@@ -37,13 +37,13 @@ describe('searchNotes', () => {
   it('finds notes by title match', () => {
     const results = searchNotes(notes, 'rust');
     expect(results.length).toBeGreaterThan(0);
-    expect(results[0].note.id).toBe('b');
+    expect(results[0]!.note.id).toBe('b');
   });
 
   it('finds notes by content match', () => {
     const results = searchNotes(notes, 'ownership');
     expect(results.length).toBe(1);
-    expect(results[0].note.id).toBe('b');
+    expect(results[0]!.note.id).toBe('b');
   });
 
   it('finds notes by tag match', () => {
@@ -81,7 +81,7 @@ describe('searchNotes', () => {
 
   it('reports contentMatch index', () => {
     const results = searchNotes(notes, 'ownership');
-    expect(results[0].contentMatch).toBeGreaterThanOrEqual(0);
+    expect(results[0]!.contentMatch).toBeGreaterThanOrEqual(0);
   });
 });
 

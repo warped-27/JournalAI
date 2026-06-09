@@ -66,23 +66,36 @@ export function NoteEditor({
     setError('');
     try {
       await onSave({ title: title.trim(), content, attachments });
-    } catch {
-      setError('Save failed.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Save failed.');
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete() {
-    if (onDelete) await onDelete();
+    if (!onDelete) return;
+    setSaving(true);
+    setError('');
+    try {
+      await onDelete();
+    } catch {
+      setError('Delete failed.');
+      setSaving(false);
+    }
   }
 
   async function handleAutoTitle() {
     if (!content.trim()) return;
     setGeneratingTitle(true);
-    const result = await ai.requestWithConsent(content, AUTO_TITLE_PROMPT);
-    if (result.ok) setTitle(result.value.slice(0, 80));
-    setGeneratingTitle(false);
+    setError('');
+    try {
+      const result = await ai.requestWithConsent(content, AUTO_TITLE_PROMPT);
+      if (result.ok) setTitle(result.value.slice(0, 80));
+      else setError(result.error.message);
+    } finally {
+      setGeneratingTitle(false);
+    }
   }
 
   function addAttachment(a: Attachment) {

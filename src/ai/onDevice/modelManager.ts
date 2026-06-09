@@ -31,7 +31,7 @@ export function startModelDownload(
     model.url,
     modelPath,
     {},
-    ({ totalBytesWritten, totalBytesExpectedToWrite }) => {
+    ({ totalBytesWritten, totalBytesExpectedToWrite }: { totalBytesWritten: number; totalBytesExpectedToWrite: number }) => {
       if (totalBytesExpectedToWrite > 0) {
         onProgress(totalBytesWritten / totalBytesExpectedToWrite);
       }

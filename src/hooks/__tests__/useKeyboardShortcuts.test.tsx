@@ -20,7 +20,7 @@ const originalRemove = globalThis.removeEventListener;
 beforeEach(() => {
   capturedListener = null;
   globalThis.addEventListener = (type: string, fn: EventListenerOrEventListenerObject) => {
-    if (type === 'keydown') capturedListener = fn as Handler;
+    if (type === 'keydown') capturedListener = fn as unknown as Handler;
   };
   globalThis.removeEventListener = () => {};
 });

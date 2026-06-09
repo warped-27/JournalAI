@@ -43,13 +43,24 @@ export default function NoteScreen() {
     }
   }, [note, id]);
 
+  // Tracks in-flight enrichment so a stale result doesn't overwrite a re-edit
+  const enrichAbortRef = useRef<{ aborted: boolean } | null>(null);
+
   async function handleSave(patch: Pick<Note, 'title' | 'content'> & { attachments?: Note['attachments'] }) {
     if (!id) return;
-    await updateNote(id, patch);
-    // Fire enrichment asynchronously — does not block navigation
+    // Cancel any pending enrichment from a previous save
+    if (enrichAbortRef.current) enrichAbortRef.current.aborted = true;
+    try {
+      await updateNote(id, patch);
+    } catch (e) {
+      // updateNote failure is surfaced by NoteEditor's onSave error handler
+      throw e;
+    }
     if (ai.hasAnyProvider && ai.hasConsented && ai.autoEnrich && (patch.title || patch.content)) {
+      const token = { aborted: false };
+      enrichAbortRef.current = token;
       enrichNote(patch.title, patch.content, ai.doComplete).then((result) => {
-        if (result.ok) void patchNote(id, result.value);
+        if (!token.aborted && result.ok) void patchNote(id, result.value);
       });
     }
     router.back();
@@ -57,11 +68,14 @@ export default function NoteScreen() {
 
   async function handleDelete() {
     if (!id) return;
-    deletingRef.current = true;
-    await deleteNote(id);
-    // Let the useEffect navigate once the store update propagates
-    if (router.canGoBack()) router.back();
-    else router.replace('/');
+    try {
+      deletingRef.current = true;
+      await deleteNote(id);
+      if (router.canGoBack()) router.back();
+      else router.replace('/');
+    } catch {
+      deletingRef.current = false;
+    }
   }
 
   return (
