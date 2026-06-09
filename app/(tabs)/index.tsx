@@ -212,6 +212,8 @@ const styles = StyleSheet.create({
     shadowOpacity:   0.6,
     shadowRadius:    16,
     elevation:       8,
+    // @ts-ignore — web-only property (replaces deprecated shadow* props on web)
+    boxShadow:       `0 0 16px 0 ${Colors.green}99`,
   },
   fabPressed: { opacity: 0.75 },
   fabLabel: {

@@ -5,8 +5,9 @@ import { View } from 'react-native';
 export function Glow() {
   return (
     <View
-      pointerEvents="none"
       style={{
+        // @ts-ignore — web-only React DOM prop (replaces deprecated pointerEvents prop)
+        pointerEvents: 'none',
         position: 'absolute',
         top: 0, left: 0, right: 0, bottom: 0,
         zIndex: 0,
