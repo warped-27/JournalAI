@@ -5,6 +5,7 @@ import { Box }             from '../design/components/Box';
 import { Input }           from '../design/components/Input';
 import { Btn }             from '../design/components/Btn';
 import { AiAssistant }     from './AiAssistant';
+import { RelatedNotes }    from './RelatedNotes';
 import { AttachmentList }  from './AttachmentList';
 import { AttachmentPicker } from './AttachmentPicker';
 import { useAi }           from '../ai/AiContext';
@@ -26,8 +27,11 @@ interface Props {
   initialTags?:        string[];
   initialSummary?:     string;
   initialPalette?:     string[];
-  onSave:   (patch: Pick<Note, 'title' | 'content'> & { attachments?: Attachment[] }) => Promise<void>;
-  onDelete?: () => Promise<void>;
+  onSave:       (patch: Pick<Note, 'title' | 'content'> & { attachments?: Attachment[] }) => Promise<void>;
+  onDelete?:    () => Promise<void>;
+  currentNote?: Note;
+  allNotes?:    Note[];
+  onOpenNote?:  (note: Note) => void;
 }
 
 const AUTO_TITLE_PROMPT =
@@ -43,6 +47,9 @@ export function NoteEditor({
   initialPalette,
   onSave,
   onDelete,
+  currentNote,
+  allNotes,
+  onOpenNote,
 }: Props) {
   const [title,           setTitle]           = useState(initialTitle);
   const [content,         setContent]         = useState(initialContent);
@@ -163,6 +170,15 @@ export function NoteEditor({
               </View>
             )}
           </View>
+        )}
+
+        {/* Related notes — offline TF-IDF, only when note has content */}
+        {currentNote && allNotes && onOpenNote && (title || content) && (
+          <RelatedNotes
+            currentNote={{ ...currentNote, title, content }}
+            allNotes={allNotes}
+            onOpen={onOpenNote}
+          />
         )}
 
         {error ? <T variant="error" style={styles.error}>{error}</T> : null}

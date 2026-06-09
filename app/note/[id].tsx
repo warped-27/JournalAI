@@ -18,6 +18,10 @@ export default function NoteScreen() {
 
   const note = notes.find((n) => n.id === id);
 
+  function handleOpenNote(target: Note) {
+    router.push({ pathname: '/note/[id]', params: { id: target.id } });
+  }
+
   // Snapshot initial values so edits don't flicker on re-render
   const [initial] = useState<Pick<Note, 'title' | 'content' | 'attachments' | 'tags' | 'summary' | 'palette'>>({
     title:       note?.title       ?? '',
@@ -78,6 +82,9 @@ export default function NoteScreen() {
         initialPalette={initial.palette}
         onSave={handleSave}
         onDelete={handleDelete}
+        currentNote={note}
+        allNotes={notes}
+        onOpenNote={handleOpenNote}
       />
     </Box>
   );

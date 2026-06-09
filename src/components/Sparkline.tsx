@@ -4,9 +4,9 @@ import type { SparkDay } from '../stats/noteStats';
 import { Colors } from '../design/tokens';
 
 interface Props {
-  data:      SparkDay[];
-  barWidth?: number;
-  barGap?:   number;
+  data:       SparkDay[];
+  barWidth?:  number;
+  barGap?:    number;
   maxHeight?: number;
 }
 
