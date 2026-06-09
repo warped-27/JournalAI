@@ -21,8 +21,9 @@ const AI_APIKEY_KEY       = 'nj_gemini_apikey';
 const AI_CONSENT_KEY      = 'nj_gemini_consent';
 const AI_MODEL_KEY        = 'nj_gemini_model';
 const AI_AUTOENRICH_KEY   = 'nj_gemini_autoenrich';
-const AI_OLLAMA_CONFIG_KEY = 'nj_ollama_config';
-const AI_MLX_CONFIG_KEY    = 'nj_mlx_config';
+const AI_OLLAMA_CONFIG_KEY  = 'nj_ollama_config';
+const AI_MLX_CONFIG_KEY     = 'nj_mlx_config';
+const AI_CUSTOM_CONFIG_KEY  = 'nj_custom_config';
 
 export const GEMINI_MODELS = [
   { id: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash Lite (default)' },
@@ -45,6 +46,14 @@ export interface MlxConfig {
   model:   string;
 }
 
+export interface CustomProviderConfig {
+  enabled: boolean;
+  baseUrl: string;
+  model:   string;
+  /** Display name shown in Settings */
+  name:    string;
+}
+
 const DEFAULT_OLLAMA_CONFIG: OllamaConfig = {
   enabled: false,
   baseUrl: 'http://localhost:11434',
@@ -55,6 +64,13 @@ const DEFAULT_MLX_CONFIG: MlxConfig = {
   enabled: false,
   baseUrl: 'http://localhost:8080',
   model:   'mlx-community/Llama-3.2-3B-Instruct-4bit',
+};
+
+const DEFAULT_CUSTOM_CONFIG: CustomProviderConfig = {
+  enabled: false,
+  baseUrl: 'http://localhost:4000',
+  model:   'gpt-4o-mini',
+  name:    'Custom (LiteLLM / OpenAI-compatible)',
 };
 
 interface AiContextValue {
@@ -78,10 +94,12 @@ interface AiContextValue {
   setAutoEnrich: (v: boolean) => Promise<void>;
   // Local providers
   hasAnyProvider:  boolean;
-  ollamaConfig:    OllamaConfig;
-  mlxConfig:       MlxConfig;
-  setOllamaConfig: (c: OllamaConfig) => Promise<void>;
-  setMlxConfig:    (c: MlxConfig)    => Promise<void>;
+  ollamaConfig:      OllamaConfig;
+  mlxConfig:         MlxConfig;
+  customConfig:      CustomProviderConfig;
+  setOllamaConfig:   (c: OllamaConfig)         => Promise<void>;
+  setMlxConfig:      (c: MlxConfig)             => Promise<void>;
+  setCustomConfig:   (c: CustomProviderConfig)  => Promise<void>;
 }
 
 const AiContext = createContext<AiContextValue | null>(null);
@@ -94,8 +112,9 @@ export function AiProvider({ children }: { children: ReactNode }) {
   const [pendingConsent, setPendingConsent] = useState(false);
   const [isLoading, setIsLoading]  = useState(false);
   const [autoEnrich, setAutoEnrichState] = useState(false);
-  const [ollamaConfig, setOllamaConfigState] = useState<OllamaConfig>(DEFAULT_OLLAMA_CONFIG);
-  const [mlxConfig, setMlxConfigState]       = useState<MlxConfig>(DEFAULT_MLX_CONFIG);
+  const [ollamaConfig,  setOllamaConfigState]  = useState<OllamaConfig>(DEFAULT_OLLAMA_CONFIG);
+  const [mlxConfig,     setMlxConfigState]     = useState<MlxConfig>(DEFAULT_MLX_CONFIG);
+  const [customConfig,  setCustomConfigState]  = useState<CustomProviderConfig>(DEFAULT_CUSTOM_CONFIG);
 
   const pendingCallRef = useRef<{
     noteContent: string;
@@ -123,20 +142,31 @@ export function AiProvider({ children }: { children: ReactNode }) {
         model:   mlxConfig.model,
       }));
     }
+    if (customConfig.enabled && customConfig.baseUrl && customConfig.model) {
+      list.push(makeOpenAiCompatProvider({
+        id:      'custom',
+        baseUrl: customConfig.baseUrl,
+        model:   customConfig.model,
+      }));
+    }
     if (apiKey) {
       list.push(makeGeminiProvider(apiKey, model));
     }
     return list;
-  }, [onDevice.provider, ollamaConfig, mlxConfig, apiKey, model]);
+  }, [onDevice.provider, ollamaConfig, mlxConfig, customConfig, apiKey, model]);
 
   // ── Load persisted settings ────────────────────────────────────────────────
   const loadSettings = useCallback(async () => {
-    const key             = await secretGet(AI_APIKEY_KEY);
-    const consent         = await secretGet(AI_CONSENT_KEY);
-    const savedModel      = await secretGet(AI_MODEL_KEY);
-    const autoEnrichSaved = await secretGet(AI_AUTOENRICH_KEY);
-    const ollamaSaved     = await secretGet(AI_OLLAMA_CONFIG_KEY);
-    const mlxSaved        = await secretGet(AI_MLX_CONFIG_KEY);
+    const [key, consent, savedModel, autoEnrichSaved, ollamaSaved, mlxSaved, customSaved] =
+      await Promise.all([
+        secretGet(AI_APIKEY_KEY),
+        secretGet(AI_CONSENT_KEY),
+        secretGet(AI_MODEL_KEY),
+        secretGet(AI_AUTOENRICH_KEY),
+        secretGet(AI_OLLAMA_CONFIG_KEY),
+        secretGet(AI_MLX_CONFIG_KEY),
+        secretGet(AI_CUSTOM_CONFIG_KEY),
+      ]);
 
     setApiKeyState(key);
     setHasConsented(consent === '1');
@@ -147,6 +177,9 @@ export function AiProvider({ children }: { children: ReactNode }) {
     }
     if (mlxSaved) {
       try { setMlxConfigState(JSON.parse(mlxSaved) as MlxConfig); } catch {}
+    }
+    if (customSaved) {
+      try { setCustomConfigState(JSON.parse(customSaved) as CustomProviderConfig); } catch {}
     }
   }, []);
 
@@ -177,6 +210,11 @@ export function AiProvider({ children }: { children: ReactNode }) {
   const setMlxConfig = useCallback(async (c: MlxConfig) => {
     await secretSet(AI_MLX_CONFIG_KEY, JSON.stringify(c));
     setMlxConfigState(c);
+  }, []);
+
+  const setCustomConfig = useCallback(async (c: CustomProviderConfig) => {
+    await secretSet(AI_CUSTOM_CONFIG_KEY, JSON.stringify(c));
+    setCustomConfigState(c);
   }, []);
 
   // ── Consent ────────────────────────────────────────────────────────────────
@@ -261,8 +299,10 @@ export function AiProvider({ children }: { children: ReactNode }) {
         hasAnyProvider: providers.length > 0,
         ollamaConfig,
         mlxConfig,
+        customConfig,
         setOllamaConfig,
         setMlxConfig,
+        setCustomConfig,
       }}
     >
       {children}

@@ -4,7 +4,7 @@ import { Audio } from 'expo-av';
 import type { Attachment } from '../notes/Note';
 import { newId } from '../lib/id';
 import { useAi } from '../ai/AiContext';
-import { transcribeAudio } from '../ai/transcribeAudio';
+import { transcribeAudioWithFallback } from '../ai/transcribeAudio';
 import { T }   from '../design/components/T';
 import { Btn } from '../design/components/Btn';
 import { Colors, Spacing } from '../design/tokens';
@@ -85,14 +85,21 @@ export function VoiceRecorder({ onAdd, onCancel }: Props) {
   }, [audioBase64, duration, onAdd]);
 
   const handleTranscribe = useCallback(async () => {
-    if (!audioBase64 || !ai.apiKey) return;
+    if (!audioBase64 || !audioUri) return;
     if (!ai.hasConsented) {
       setError('AI consent required. Tap ASK AI in the note editor to enable AI features first.');
       return;
     }
     setState('transcribing');
     setError('');
-    const result = await transcribeAudio(audioBase64, 'audio/m4a', ai.apiKey, ai.model);
+    const result = await transcribeAudioWithFallback(
+      audioUri,
+      audioBase64,
+      'audio/m4a',
+      null,          // whisper not yet integrated; Gemini cloud fallback
+      ai.apiKey ?? '',
+      ai.model,
+    );
     if (result.ok) {
       const attachment: Attachment = {
         id:             newId(),
@@ -108,7 +115,7 @@ export function VoiceRecorder({ onAdd, onCancel }: Props) {
       setError(result.error.message);
       setState('recorded');
     }
-  }, [audioBase64, ai.apiKey, ai.model, ai.hasConsented, duration, onAdd]);
+  }, [audioBase64, audioUri, ai.apiKey, ai.model, ai.hasConsented, duration, onAdd]);
 
   const fmt = (s: number) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
 
@@ -132,7 +139,7 @@ export function VoiceRecorder({ onAdd, onCancel }: Props) {
         <View style={styles.actions}>
           <Btn variant="ghost"   label="RE-RECORD"  onPress={() => { setState('idle'); setDuration(0); }} style={styles.btn} testID="rec-redo" />
           <Btn variant="ghost"   label="SAVE AUDIO" onPress={handleSave}       style={styles.btn} testID="rec-save" />
-          {ai.apiKey && (
+          {ai.hasAnyProvider && (
             <Btn variant="primary" label="TRANSCRIBE"  onPress={handleTranscribe} style={styles.btn} testID="rec-transcribe" />
           )}
         </View>
