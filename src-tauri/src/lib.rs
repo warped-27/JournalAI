@@ -62,6 +62,14 @@ fn delete_secret(key: String) -> Result<(), String> {
     }
 }
 
+/// Read an arbitrary file as raw bytes.
+/// Used by the JS layer after a user selects a file via the OS dialog —
+/// the dialog approval implies user intent, so no capability scope is needed.
+#[tauri::command]
+fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
+    std::fs::read(&path).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -71,6 +79,7 @@ pub fn run() {
             get_secret,
             set_secret,
             delete_secret,
+            read_file_bytes,
         ])
         .run(tauri::generate_context!())
         .expect("error while running NERD_JOURNAL_");

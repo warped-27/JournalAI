@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Pressable, StyleSheet, Linking } from 'react-native';
+import { View, Pressable, Image, StyleSheet, Linking } from 'react-native';
 import type { Attachment } from '../notes/Note';
 import { T } from '../design/components/T';
 import { Colors, Spacing, Typography } from '../design/tokens';
@@ -9,12 +9,12 @@ interface Props {
   onRemove: (id: string) => void;
 }
 
-function icon(type: Attachment['type']): string {
+function fileIcon(type: Attachment['type']): string {
   switch (type) {
-    case 'image': return '🖼';
     case 'file':  return '📄';
     case 'link':  return '🔗';
     case 'voice': return '🎙';
+    default:      return '📎';
   }
 }
 
@@ -26,14 +26,54 @@ function label(a: Attachment): string {
   return a.name ?? a.mimeType ?? a.type;
 }
 
+function ImageAttachment({ a }: { a: Attachment }) {
+  const uri = a.data ? `data:${a.mimeType ?? 'image/jpeg'};base64,${a.data}` : undefined;
+  return (
+    <View style={styles.imageWrap} testID={`attachment-image-${a.id}`}>
+      {uri ? (
+        <Image source={{ uri }} style={styles.thumbnail} resizeMode="cover" />
+      ) : (
+        <View style={[styles.thumbnail, styles.thumbnailPlaceholder]}>
+          <T variant="mono" style={styles.thumbnailIcon}>🖼</T>
+        </View>
+      )}
+      <T variant="caption" style={styles.imageName} numberOfLines={1}>
+        {a.name ?? 'image'}
+      </T>
+    </View>
+  );
+}
+
 export function AttachmentList({ attachments, onRemove }: Props) {
   if (!attachments.length) return null;
 
+  // Images rendered as a horizontal thumbnail strip
+  const images = attachments.filter((a) => a.type === 'image');
+  const others = attachments.filter((a) => a.type !== 'image');
+
   return (
     <View style={styles.root} testID="attachment-list">
-      {attachments.map((a) => (
+      {images.length > 0 && (
+        <View style={styles.imageStrip} testID="attachment-images">
+          {images.map((a) => (
+            <View key={a.id} style={styles.imageItem}>
+              <ImageAttachment a={a} />
+              <Pressable
+                onPress={() => onRemove(a.id)}
+                style={styles.imageRemove}
+                testID={`attachment-remove-${a.id}`}
+                accessibilityLabel="Remove attachment"
+              >
+                <T variant="label" style={styles.removeIcon}>✕</T>
+              </Pressable>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {others.map((a) => (
         <View key={a.id} style={styles.row} testID={`attachment-${a.id}`}>
-          <T variant="mono" style={styles.icon}>{icon(a.type)}</T>
+          <T variant="mono" style={styles.icon}>{fileIcon(a.type)}</T>
 
           <Pressable
             style={styles.labelWrap}
@@ -68,17 +108,57 @@ export function AttachmentList({ attachments, onRemove }: Props) {
   );
 }
 
+const THUMB = 80;
+
 const styles = StyleSheet.create({
   root: { marginTop: Spacing.sm },
+
+  imageStrip: {
+    flexDirection: 'row',
+    flexWrap:      'wrap',
+    gap:           Spacing.xs,
+    marginBottom:  Spacing.xs,
+  },
+  imageItem:    { position: 'relative' },
+  imageWrap:    { alignItems: 'center', gap: 2 },
+  thumbnail: {
+    width:        THUMB,
+    height:       THUMB,
+    borderWidth:  1,
+    borderColor:  Colors.border,
+  },
+  thumbnailPlaceholder: {
+    backgroundColor: Colors.surface ?? '#1a1a1a',
+    alignItems:      'center',
+    justifyContent:  'center',
+  },
+  thumbnailIcon: { fontSize: 24 },
+  imageName: {
+    width:    THUMB,
+    fontSize: 9,
+    color:    Colors.textMuted,
+  },
+  imageRemove: {
+    position:        'absolute',
+    top:             2,
+    right:           2,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius:    8,
+    width:           16,
+    height:          16,
+    alignItems:      'center',
+    justifyContent:  'center',
+  },
+
   row: {
-    flexDirection:  'row',
-    alignItems:     'flex-start',
-    borderWidth:    1,
-    borderColor:    Colors.border,
+    flexDirection:     'row',
+    alignItems:        'flex-start',
+    borderWidth:       1,
+    borderColor:       Colors.border,
     paddingVertical:   Spacing.xs,
     paddingHorizontal: Spacing.sm,
-    marginBottom:   Spacing.xs,
-    gap:            Spacing.sm,
+    marginBottom:      Spacing.xs,
+    gap:               Spacing.sm,
   },
   icon:      { fontSize: 16, lineHeight: 22 },
   labelWrap: { flex: 1 },

@@ -88,3 +88,23 @@ export async function transcribeAudio(
 
   return ok(text.trim());
 }
+
+/** Transcribes audio using a local whisper fn first, falling back to Gemini cloud. */
+export async function transcribeAudioWithFallback(
+  audioPath:    string,
+  base64Audio:  string,
+  mimeType:     string,
+  whisperFn:    ((path: string) => Promise<string | null>) | null,
+  apiKey:       string,
+  model?:       string,
+): Promise<Result<string, Error>> {
+  if (whisperFn) {
+    try {
+      const text = await whisperFn(audioPath);
+      if (text) return ok(text);
+    } catch {
+      // whisper failed — fall through to cloud
+    }
+  }
+  return transcribeAudio(base64Audio, mimeType, apiKey, model);
+}
