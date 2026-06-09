@@ -14,16 +14,20 @@ import { askAi } from './aiService';
 import { cascadeComplete } from './providerCascade';
 import { makeGeminiProvider } from './providers/geminiProvider';
 import { makeOpenAiCompatProvider } from './providers/openAiCompatProvider';
+import { makeClaudeProvider, type ClaudeConfig, DEFAULT_CLAUDE_MODEL } from './providers/claudeProvider';
 import { useOnDevice } from './onDevice/OnDeviceContext';
 import type { AiProvider } from './providers/types';
 
-const AI_APIKEY_KEY       = 'nj_gemini_apikey';
-const AI_CONSENT_KEY      = 'nj_gemini_consent';
-const AI_MODEL_KEY        = 'nj_gemini_model';
-const AI_AUTOENRICH_KEY   = 'nj_gemini_autoenrich';
-const AI_OLLAMA_CONFIG_KEY  = 'nj_ollama_config';
-const AI_MLX_CONFIG_KEY     = 'nj_mlx_config';
-const AI_CUSTOM_CONFIG_KEY  = 'nj_custom_config';
+export type { ClaudeConfig };
+
+const AI_APIKEY_KEY        = 'nj_gemini_apikey';
+const AI_CONSENT_KEY       = 'nj_gemini_consent';
+const AI_MODEL_KEY         = 'nj_gemini_model';
+const AI_AUTOENRICH_KEY    = 'nj_gemini_autoenrich';
+const AI_OLLAMA_CONFIG_KEY = 'nj_ollama_config';
+const AI_MLX_CONFIG_KEY    = 'nj_mlx_config';
+const AI_CUSTOM_CONFIG_KEY = 'nj_custom_config';
+const AI_CLAUDE_CONFIG_KEY = 'nj_claude_config';
 
 export const GEMINI_MODELS = [
   { id: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash Lite (default)' },
@@ -52,6 +56,8 @@ export interface CustomProviderConfig {
   model:   string;
   /** Display name shown in Settings */
   name:    string;
+  /** Optional API key for cloud OpenAI-compatible endpoints */
+  apiKey?: string;
 }
 
 const DEFAULT_OLLAMA_CONFIG: OllamaConfig = {
@@ -71,6 +77,13 @@ const DEFAULT_CUSTOM_CONFIG: CustomProviderConfig = {
   baseUrl: 'http://localhost:4000',
   model:   'gpt-4o-mini',
   name:    'Custom (LiteLLM / OpenAI-compatible)',
+  apiKey:  '',
+};
+
+const DEFAULT_CLAUDE_CONFIG: ClaudeConfig = {
+  enabled: false,
+  apiKey:  '',
+  model:   DEFAULT_CLAUDE_MODEL,
 };
 
 interface AiContextValue {
@@ -97,9 +110,11 @@ interface AiContextValue {
   ollamaConfig:      OllamaConfig;
   mlxConfig:         MlxConfig;
   customConfig:      CustomProviderConfig;
+  claudeConfig:      ClaudeConfig;
   setOllamaConfig:   (c: OllamaConfig)         => Promise<void>;
   setMlxConfig:      (c: MlxConfig)             => Promise<void>;
   setCustomConfig:   (c: CustomProviderConfig)  => Promise<void>;
+  setClaudeConfig:   (c: ClaudeConfig)          => Promise<void>;
 }
 
 const AiContext = createContext<AiContextValue | null>(null);
@@ -115,6 +130,7 @@ export function AiProvider({ children }: { children: ReactNode }) {
   const [ollamaConfig,  setOllamaConfigState]  = useState<OllamaConfig>(DEFAULT_OLLAMA_CONFIG);
   const [mlxConfig,     setMlxConfigState]     = useState<MlxConfig>(DEFAULT_MLX_CONFIG);
   const [customConfig,  setCustomConfigState]  = useState<CustomProviderConfig>(DEFAULT_CUSTOM_CONFIG);
+  const [claudeConfig,  setClaudeConfigState]  = useState<ClaudeConfig>(DEFAULT_CLAUDE_CONFIG);
 
   const pendingCallRef = useRef<{
     noteContent: string;
@@ -122,7 +138,7 @@ export function AiProvider({ children }: { children: ReactNode }) {
     resolve: (r: Result<string, Error>) => void;
   } | null>(null);
 
-  // ── Provider list (local-first: on-device → Ollama → MLX → Gemini) ────────
+  // ── Provider list (local-first: on-device → Ollama → MLX → Custom → Claude → Gemini) ──
   const providers = useMemo((): AiProvider[] => {
     const list: AiProvider[] = [];
     if (onDevice.provider) {
@@ -147,17 +163,21 @@ export function AiProvider({ children }: { children: ReactNode }) {
         id:      'custom',
         baseUrl: customConfig.baseUrl,
         model:   customConfig.model,
+        apiKey:  customConfig.apiKey,
       }));
+    }
+    if (claudeConfig.enabled && claudeConfig.apiKey && claudeConfig.model) {
+      list.push(makeClaudeProvider(claudeConfig));
     }
     if (apiKey) {
       list.push(makeGeminiProvider(apiKey, model));
     }
     return list;
-  }, [onDevice.provider, ollamaConfig, mlxConfig, customConfig, apiKey, model]);
+  }, [onDevice.provider, ollamaConfig, mlxConfig, customConfig, claudeConfig, apiKey, model]);
 
   // ── Load persisted settings ────────────────────────────────────────────────
   const loadSettings = useCallback(async () => {
-    const [key, consent, savedModel, autoEnrichSaved, ollamaSaved, mlxSaved, customSaved] =
+    const [key, consent, savedModel, autoEnrichSaved, ollamaSaved, mlxSaved, customSaved, claudeSaved] =
       await Promise.all([
         secretGet(AI_APIKEY_KEY),
         secretGet(AI_CONSENT_KEY),
@@ -166,6 +186,7 @@ export function AiProvider({ children }: { children: ReactNode }) {
         secretGet(AI_OLLAMA_CONFIG_KEY),
         secretGet(AI_MLX_CONFIG_KEY),
         secretGet(AI_CUSTOM_CONFIG_KEY),
+        secretGet(AI_CLAUDE_CONFIG_KEY),
       ]);
 
     setApiKeyState(key);
@@ -180,6 +201,9 @@ export function AiProvider({ children }: { children: ReactNode }) {
     }
     if (customSaved) {
       try { setCustomConfigState(JSON.parse(customSaved) as CustomProviderConfig); } catch {}
+    }
+    if (claudeSaved) {
+      try { setClaudeConfigState(JSON.parse(claudeSaved) as ClaudeConfig); } catch {}
     }
   }, []);
 
@@ -201,7 +225,7 @@ export function AiProvider({ children }: { children: ReactNode }) {
     setModelState(m);
   }, []);
 
-  // ── Local provider config ─────────────────────────────────────────────────
+  // ── Local / cloud provider config ─────────────────────────────────────────
   const setOllamaConfig = useCallback(async (c: OllamaConfig) => {
     await secretSet(AI_OLLAMA_CONFIG_KEY, JSON.stringify(c));
     setOllamaConfigState(c);
@@ -215,6 +239,11 @@ export function AiProvider({ children }: { children: ReactNode }) {
   const setCustomConfig = useCallback(async (c: CustomProviderConfig) => {
     await secretSet(AI_CUSTOM_CONFIG_KEY, JSON.stringify(c));
     setCustomConfigState(c);
+  }, []);
+
+  const setClaudeConfig = useCallback(async (c: ClaudeConfig) => {
+    await secretSet(AI_CLAUDE_CONFIG_KEY, JSON.stringify(c));
+    setClaudeConfigState(c);
   }, []);
 
   // ── Consent ────────────────────────────────────────────────────────────────
@@ -300,9 +329,11 @@ export function AiProvider({ children }: { children: ReactNode }) {
         ollamaConfig,
         mlxConfig,
         customConfig,
+        claudeConfig,
         setOllamaConfig,
         setMlxConfig,
         setCustomConfig,
+        setClaudeConfig,
       }}
     >
       {children}

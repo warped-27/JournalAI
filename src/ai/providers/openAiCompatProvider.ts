@@ -59,15 +59,25 @@ export function makeOpenAiCompatProvider(config: OpenAiCompatConfig): AiProvider
   };
 }
 
-/** Checks whether an OpenAI-compatible server is reachable at baseUrl. */
-export async function testOpenAiCompatConnection(baseUrl: string): Promise<void> {
+/** Checks whether an OpenAI-compatible server is reachable at baseUrl.
+ *  If apiKey is provided, it is sent in the Authorization header and a 401
+ *  response is treated as an invalid-key error rather than a reachability pass. */
+export async function testOpenAiCompatConnection(baseUrl: string, apiKey?: string): Promise<void> {
   assertSafeUrl(baseUrl);
   const base = baseUrl.replace(/\/+$/, '');
   let response: Response;
   try {
-    response = await fetch(`${base}/v1/models`);
+    response = await fetch(`${base}/v1/models`, {
+      headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : {},
+    });
   } catch (e) {
     throw new Error(`Cannot reach server: ${e instanceof Error ? e.message : String(e)}`);
   }
-  if (!response.ok) throw new Error(`Server returned HTTP ${response.status}`);
+  if (response.status === 401 && apiKey) {
+    throw new Error('Invalid API key — check your credentials');
+  }
+  // 401 without a key = server is up but requires auth (local proxy without auth disabled)
+  if (!response.ok && response.status !== 401) {
+    throw new Error(`Server returned HTTP ${response.status}`);
+  }
 }

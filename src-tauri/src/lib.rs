@@ -19,6 +19,8 @@ const ALLOWED_KEYS: &[&str] = &[
     "nj_gemini_autoenrich",
     "nj_ollama_config",
     "nj_mlx_config",
+    "nj_custom_config",
+    "nj_claude_config",
     "nj_sync_config",
     "nj_sync_meta",
     "nj_device_id",

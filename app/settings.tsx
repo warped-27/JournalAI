@@ -6,6 +6,7 @@ import { useAi, GEMINI_MODELS } from '../src/ai/AiContext';
 import { useOnDevice } from '../src/ai/onDevice/OnDeviceContext';
 import { useWhisper } from '../src/ai/whisper/WhisperContext';
 import { testOpenAiCompatConnection } from '../src/ai/providers/openAiCompatProvider';
+import { testClaudeConnection, CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL } from '../src/ai/providers/claudeProvider';
 import { useSync } from '../src/sync/SyncContext';
 import { useNotes } from '../src/notes/NotesContext';
 import { webdavPush, webdavPull, testWebDavConnection } from '../src/sync/providers/webdavSync';
@@ -15,6 +16,13 @@ import { T } from '../src/design/components/T';
 import { Input } from '../src/design/components/Input';
 import { Btn } from '../src/design/components/Btn';
 import { Colors, Spacing } from '../src/design/tokens';
+
+const OPENAI_COMPAT_PRESETS = [
+  { label: 'OPENAI',     baseUrl: 'https://api.openai.com',    model: 'gpt-4o-mini',          name: 'OpenAI' },
+  { label: 'GROK',       baseUrl: 'https://api.x.ai',          model: 'grok-3-mini',          name: 'Grok (xAI)' },
+  { label: 'MISTRAL',    baseUrl: 'https://api.mistral.ai',    model: 'mistral-small-latest', name: 'Mistral' },
+  { label: 'PERPLEXITY', baseUrl: 'https://api.perplexity.ai', model: 'sonar',                name: 'Perplexity' },
+] as const;
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -46,8 +54,16 @@ export default function SettingsScreen() {
   const [customUrl,     setCustomUrl]     = useState(ai.customConfig.baseUrl);
   const [customModel,   setCustomModel]   = useState(ai.customConfig.model);
   const [customName,    setCustomName]    = useState(ai.customConfig.name);
+  const [customApiKey,  setCustomApiKey]  = useState(ai.customConfig.apiKey ?? '');
   const [customTesting, setCustomTesting] = useState(false);
   const [customStatus,  setCustomStatus]  = useState('');
+
+  // Claude form state
+  const [claudeEnabled, setClaudeEnabled] = useState(ai.claudeConfig.enabled);
+  const [claudeApiKey,  setClaudeApiKey]  = useState(ai.claudeConfig.apiKey);
+  const [claudeModel,   setClaudeModel]   = useState(ai.claudeConfig.model || DEFAULT_CLAUDE_MODEL);
+  const [claudeTesting, setClaudeTesting] = useState(false);
+  const [claudeStatus,  setClaudeStatus]  = useState('');
 
   // WebDAV form state (seeded from stored config)
   const wdCfg  = sync.config.provider === 'webdav' ? sync.config.webdav : undefined;
@@ -107,18 +123,35 @@ export default function SettingsScreen() {
     setCustomTesting(true);
     setCustomStatus('');
     try {
-      if (customEnabled) await testOpenAiCompatConnection(url);
+      if (customEnabled) await testOpenAiCompatConnection(url, customApiKey.trim() || undefined);
       await ai.setCustomConfig({
         enabled: customEnabled,
         baseUrl: url,
-        model: customModel.trim(),
-        name:  customName.trim() || 'Custom',
+        model:   customModel.trim(),
+        name:    customName.trim() || 'Custom',
+        apiKey:  customApiKey.trim(),
       });
       setCustomStatus(customEnabled ? 'Custom provider configured ✓' : 'Custom provider disabled ✓');
     } catch (e) {
       setCustomStatus(e instanceof Error ? e.message : 'Connection test failed');
     } finally {
       setCustomTesting(false);
+    }
+  }
+
+  async function handleClaudeSave() {
+    const key = claudeApiKey.trim();
+    if (!key) { setClaudeStatus('API key is required'); return; }
+    setClaudeTesting(true);
+    setClaudeStatus('');
+    try {
+      if (claudeEnabled) await testClaudeConnection(key, claudeModel);
+      await ai.setClaudeConfig({ enabled: claudeEnabled, apiKey: key, model: claudeModel });
+      setClaudeStatus(claudeEnabled ? 'Claude configured ✓' : 'Claude disabled ✓');
+    } catch (e) {
+      setClaudeStatus(e instanceof Error ? e.message : 'Connection test failed');
+    } finally {
+      setClaudeTesting(false);
     }
   }
 
@@ -524,8 +557,27 @@ export default function SettingsScreen() {
         {/* ─── CUSTOM PROVIDER ─── */}
         <T variant="label" style={[styles.label, styles.modelTitle]}>CUSTOM (LITELLM / OPENAI-COMPATIBLE)</T>
         <T variant="muted" style={styles.hint}>
-          Point to any OpenAI-compatible endpoint: LiteLLM proxy, vLLM, LocalAI, or similar.
+          Point to any OpenAI-compatible endpoint. Use quick-setup presets for cloud
+          providers, or enter a custom URL for LiteLLM, vLLM, LocalAI, or similar.
         </T>
+
+        {/* Quick-setup presets */}
+        <T variant="caption" style={styles.presetsLabel}>QUICK SETUP:</T>
+        <View style={styles.presetsRow}>
+          {OPENAI_COMPAT_PRESETS.map((p) => (
+            <Pressable
+              key={p.label}
+              style={[styles.presetChip, customUrl === p.baseUrl && styles.presetChipActive]}
+              onPress={() => { setCustomUrl(p.baseUrl); setCustomModel(p.model); setCustomName(p.name); }}
+              testID={`custom-preset-${p.label.toLowerCase()}`}
+            >
+              <T variant="kicker" style={customUrl === p.baseUrl ? styles.presetChipTextActive : styles.presetChipText}>
+                {p.label}
+              </T>
+            </Pressable>
+          ))}
+        </View>
+
         <Input
           value={customName}
           onChangeText={setCustomName}
@@ -534,6 +586,16 @@ export default function SettingsScreen() {
           autoCorrect={false}
           style={styles.input}
           testID="custom-name"
+        />
+        <Input
+          value={customApiKey}
+          onChangeText={setCustomApiKey}
+          placeholder="API key (leave blank for local servers)"
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={styles.input}
+          testID="custom-apikey"
         />
         <Pressable
           style={[styles.toggleRow, customEnabled && styles.toggleRowActive]}
@@ -581,6 +643,74 @@ export default function SettingsScreen() {
             testID="custom-status"
           >
             {customStatus}
+          </T>
+        ) : null}
+
+        {/* ─── CLAUDE ─── */}
+        <T variant="heading" style={[styles.section, styles.syncHeading]}>CLOUD AI — CLAUDE</T>
+        <T variant="muted" style={styles.hint}>
+          Anthropic Claude — privacy-conscious cloud AI. Uses a different API format
+          from OpenAI-compatible providers. Your notes are sent to Anthropic when used.
+          Get an API key at console.anthropic.com
+        </T>
+
+        <Input
+          value={claudeApiKey}
+          onChangeText={setClaudeApiKey}
+          placeholder="sk-ant-…"
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={styles.input}
+          testID="claude-apikey"
+        />
+
+        <Pressable
+          style={[styles.toggleRow, claudeEnabled && styles.toggleRowActive]}
+          onPress={() => setClaudeEnabled(!claudeEnabled)}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: claudeEnabled }}
+          testID="claude-toggle"
+        >
+          <View style={[styles.radio, claudeEnabled && styles.radioActive]} />
+          <T variant={claudeEnabled ? 'label' : 'muted'} style={styles.modelLabel}>
+            {claudeEnabled ? 'ENABLED' : 'DISABLED'}
+          </T>
+        </Pressable>
+
+        <T variant="label" style={styles.label}>MODEL</T>
+        {CLAUDE_MODELS.map((m) => {
+          const active = claudeModel === m.id;
+          return (
+            <Pressable
+              key={m.id}
+              style={[styles.modelRow, active && styles.modelRowActive]}
+              onPress={() => setClaudeModel(m.id)}
+              testID={`claude-model-${m.id}`}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: active }}
+            >
+              <View style={[styles.radio, active && styles.radioActive]} />
+              <T variant={active ? 'label' : 'muted'} style={styles.modelLabel}>{m.label}</T>
+            </Pressable>
+          );
+        })}
+
+        <Btn
+          label={claudeTesting ? 'TESTING…' : 'SAVE CLAUDE'}
+          variant="primary"
+          onPress={handleClaudeSave}
+          loading={claudeTesting}
+          style={[styles.btn, styles.fullBtn]}
+          testID="claude-save"
+        />
+        {claudeStatus ? (
+          <T
+            variant={claudeStatus.includes('✓') ? 'label' : 'error'}
+            style={[styles.status, styles.sectionGap]}
+            testID="claude-status"
+          >
+            {claudeStatus}
           </T>
         ) : null}
 
@@ -882,4 +1012,23 @@ const styles = StyleSheet.create({
   disconnectBtn:  { marginTop: Spacing.xs },
   fullBtn:        { alignSelf: 'stretch' },
   sectionGap:     { marginBottom: Spacing.md },
+  presetsLabel:   { marginBottom: Spacing.xs, color: Colors.textMuted },
+  presetsRow: {
+    flexDirection: 'row',
+    flexWrap:      'wrap',
+    gap:           Spacing.xs,
+    marginBottom:  Spacing.md,
+  },
+  presetChip: {
+    borderWidth:       1,
+    borderColor:       Colors.border,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical:   4,
+  },
+  presetChipActive: {
+    borderColor:     Colors.green,
+    backgroundColor: Colors.greenBg,
+  },
+  presetChipText:       { color: Colors.textMuted },
+  presetChipTextActive: { color: Colors.green },
 });
