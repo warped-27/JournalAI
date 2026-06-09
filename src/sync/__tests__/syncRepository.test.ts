@@ -1,4 +1,4 @@
-import { mergeBundle, type MergeResult } from '../syncRepository';
+import { mergeBundle, needsPush, type MergeResult } from '../syncRepository';
 import type { SyncBundle } from '../SyncBundle';
 
 // Mock vaultStorage so loadSalt doesn't hit SecureStore
@@ -13,8 +13,14 @@ jest.mock('../../crypto/secureSecrets', () => ({
 function makeDb(existingRows: { id: string; updated_at: number }[] = []) {
   const rows = [...existingRows];
   return {
-    getAllAsync: jest.fn().mockResolvedValue(rows),
-    getFirstAsync: jest.fn(async (_sql: string, params: string[]) => {
+    getAllAsync:   jest.fn().mockResolvedValue(rows),
+    getFirstAsync: jest.fn(async (_sql: string, params: unknown[]) => {
+      // For needsPush COUNT query: params[0] is the `since` timestamp
+      if (_sql.includes('COUNT')) {
+        const since = params[0] as number;
+        const count = rows.filter((r) => r.updated_at > since).length;
+        return { c: count };
+      }
       return rows.find((r) => r.id === params[0]) ?? null;
     }),
     runAsync: jest.fn().mockResolvedValue({ lastInsertRowId: 0, changes: 1 }),
@@ -85,5 +91,27 @@ describe('mergeBundle', () => {
     const result = await mergeBundle(db as any, baseBundle);
     expect(result.imported).toBe(0);
     expect(result.skipped).toBe(0);
+  });
+});
+
+describe('needsPush', () => {
+  it('returns true when a note is newer than since', async () => {
+    const db = makeDb([{ id: 'n1', updated_at: 200 }]);
+    expect(await needsPush(db as any, 100)).toBe(true);
+  });
+
+  it('returns false when all notes are older than since', async () => {
+    const db = makeDb([{ id: 'n1', updated_at: 50 }]);
+    expect(await needsPush(db as any, 100)).toBe(false);
+  });
+
+  it('returns false for empty db', async () => {
+    const db = makeDb([]);
+    expect(await needsPush(db as any, 0)).toBe(false);
+  });
+
+  it('returns true when note updated_at equals since + 1', async () => {
+    const db = makeDb([{ id: 'n1', updated_at: 101 }]);
+    expect(await needsPush(db as any, 100)).toBe(true);
   });
 });

@@ -1,11 +1,28 @@
 import type { NoteRow } from '../notes/Note';
 
+/**
+ * An attachment's binary payload, encrypted with the vault key and stored
+ * separately from the note envelope so large blobs don't inflate the main bundle.
+ * Sync providers upload these as individual files alongside the bundle.
+ */
+export interface AttachmentBlob {
+  id:       string;   // matches Attachment.id inside the decrypted Note
+  noteId:   string;   // owning note
+  mimeType: string;
+  size:     number;   // unencrypted byte count
+  envelope: string;   // base64url AES-256-GCM encrypted data (vault key)
+}
+
 export interface SyncBundle {
   version:    1;
   salt:       string;      // base64url, 16 bytes — KDF salt for this vault
   notes:      NoteRow[];   // already-encrypted envelopes, safe to transfer
   exportedAt: number;      // unix ms
   deviceId:   string;
+  // Optional delta / attachment fields (ignored by older clients)
+  isFull?:    boolean;     // true = all notes, false = delta (notes since `since`)
+  since?:     number;      // unix ms cutoff used when isFull === false
+  blobs?:     AttachmentBlob[];  // separately-encrypted attachment payloads
 }
 
 export function serializeBundle(bundle: SyncBundle): string {

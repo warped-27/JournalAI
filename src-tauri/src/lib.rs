@@ -15,6 +15,7 @@ const ALLOWED_KEYS: &[&str] = &[
     "nj_ollama_config",
     "nj_mlx_config",
     "nj_sync_config",
+    "nj_sync_meta",
     "nj_device_id",
     "nj_biometric_enabled",
     "nj_custom_config",

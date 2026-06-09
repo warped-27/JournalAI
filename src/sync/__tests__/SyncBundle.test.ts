@@ -66,4 +66,23 @@ describe('SyncBundle', () => {
     const oversized = { length: 512 * 1024 * 1024 + 1 } as unknown as string;
     expect(() => parseBundle(oversized)).toThrow('maximum allowed size');
   });
+
+  it('preserves optional isFull and since fields', () => {
+    const delta: SyncBundle = { ...validBundle, isFull: false, since: 9000 };
+    const parsed = parseBundle(serializeBundle(delta));
+    expect(parsed.isFull).toBe(false);
+    expect(parsed.since).toBe(9000);
+  });
+
+  it('preserves optional blobs array', () => {
+    const withBlobs: SyncBundle = {
+      ...validBundle,
+      blobs: [{
+        id: 'blob-1', noteId: 'n1', mimeType: 'image/png', size: 1024, envelope: 'enc==',
+      }],
+    };
+    const parsed = parseBundle(serializeBundle(withBlobs));
+    expect(parsed.blobs).toHaveLength(1);
+    expect(parsed.blobs![0]!.id).toBe('blob-1');
+  });
 });

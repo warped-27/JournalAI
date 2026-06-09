@@ -143,13 +143,37 @@ export default function SettingsScreen() {
     setWdSyncing(true);
     setSyncStatus('');
     try {
-      const bundle  = await notes.exportBundle();
-      const remote  = await webdavPull(sync.config.webdav);
-      if (remote) await notes.importBundle(remote);
-      const merged  = await notes.exportBundle();
-      await webdavPush(sync.config.webdav, merged);
-      sync.setLastSyncAt(Date.now());
-      setSyncStatus('Sync complete ✓');
+      const cfg = sync.config.webdav;
+
+      // 1. Conditional pull — skip download if remote bundle hasn't changed
+      const pullResult = await webdavPull(cfg, sync.lastEtag);
+      let newEtag = sync.lastEtag;
+
+      if (pullResult === null && sync.lastEtag) {
+        // 304 Not Modified — remote unchanged, nothing to merge
+        setSyncStatus('Remote up to date');
+      } else if (pullResult) {
+        await notes.importBundle(pullResult.bundle);
+        newEtag = pullResult.etag;
+      }
+
+      // 2. Conditional push — skip upload if nothing changed locally since last sync
+      const lastSyncAt   = sync.lastSyncAt ?? 0;
+      const localChanged = !sync.lastSyncAt || (await notes.hasChangedSince(lastSyncAt));
+
+      if (localChanged) {
+        const merged = await notes.exportBundle();
+        await webdavPush(cfg, merged);
+        setSyncStatus('Sync complete ✓');
+      } else if (!pullResult || !pullResult.bundle) {
+        setSyncStatus('Already up to date ✓');
+      } else {
+        setSyncStatus('Sync complete ✓');
+      }
+
+      const now = Date.now();
+      sync.setLastSyncAt(now);
+      if (newEtag !== sync.lastEtag) sync.setLastEtag(newEtag);
     } catch (e) {
       setSyncStatus(e instanceof Error ? e.message : 'Sync failed');
     } finally {

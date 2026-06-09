@@ -29,7 +29,17 @@ export async function exportBundle(db: Database): Promise<SyncBundle> {
     notes:      rows,
     exportedAt: Date.now(),
     deviceId,
+    isFull:     true,
   };
+}
+
+/** Returns true if any note has been modified after `since` (unix ms). */
+export async function needsPush(db: Database, since: number): Promise<boolean> {
+  const row = await db.getFirstAsync<{ c: number }>(
+    'SELECT COUNT(*) as c FROM notes WHERE updated_at > ?',
+    [since],
+  );
+  return (row?.c ?? 0) > 0;
 }
 
 export interface MergeResult {

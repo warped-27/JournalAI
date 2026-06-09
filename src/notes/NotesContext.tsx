@@ -7,7 +7,7 @@ import { NotesRepository } from './NotesRepository';
 import { createNotesStore } from './notesStore';
 import type { Note } from './Note';
 import type { Database } from '../db/types';
-import { exportBundle as repoExportBundle, mergeBundle as repoMergeBundle, type MergeResult } from '../sync/syncRepository';
+import { exportBundle as repoExportBundle, mergeBundle as repoMergeBundle, needsPush, type MergeResult } from '../sync/syncRepository';
 import type { SyncBundle } from '../sync/SyncBundle';
 
 interface NotesState {
@@ -16,12 +16,13 @@ interface NotesState {
 }
 
 interface NotesActions {
-  createNote:    (draft: Pick<Note, 'title' | 'content'> & { attachments?: Note['attachments'] }) => Promise<Note | null>;
-  updateNote:    (id: string, patch: Pick<Note, 'title' | 'content'> & { attachments?: Note['attachments'] }) => Promise<void>;
-  patchNote:     (id: string, patch: Partial<Pick<Note, 'tags' | 'summary' | 'palette'>>) => Promise<void>;
-  deleteNote:    (id: string) => Promise<void>;
-  exportBundle:  () => Promise<SyncBundle>;
-  importBundle:  (bundle: SyncBundle) => Promise<MergeResult>;
+  createNote:       (draft: Pick<Note, 'title' | 'content'> & { attachments?: Note['attachments'] }) => Promise<Note | null>;
+  updateNote:       (id: string, patch: Pick<Note, 'title' | 'content'> & { attachments?: Note['attachments'] }) => Promise<void>;
+  patchNote:        (id: string, patch: Partial<Pick<Note, 'tags' | 'summary' | 'palette'>>) => Promise<void>;
+  deleteNote:       (id: string) => Promise<void>;
+  exportBundle:     () => Promise<SyncBundle>;
+  importBundle:     (bundle: SyncBundle) => Promise<MergeResult>;
+  hasChangedSince:  (since: number) => Promise<boolean>;
 }
 
 const NotesContext = createContext<(NotesState & NotesActions) | undefined>(undefined);
@@ -102,8 +103,14 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
     return result;
   }, []);
 
+  const hasChangedSince = useCallback(async (since: number): Promise<boolean> => {
+    const db = dbRef.current;
+    if (!db) return false;
+    return needsPush(db, since);
+  }, []);
+
   return (
-    <NotesContext.Provider value={{ notes, isLoading, createNote, updateNote, patchNote, deleteNote, exportBundle, importBundle }}>
+    <NotesContext.Provider value={{ notes, isLoading, createNote, updateNote, patchNote, deleteNote, exportBundle, importBundle, hasChangedSince }}>
       {children}
     </NotesContext.Provider>
   );
