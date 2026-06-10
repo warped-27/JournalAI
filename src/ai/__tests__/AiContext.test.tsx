@@ -8,7 +8,18 @@ import { ok, err } from '../../lib/result';
 jest.mock('../../crypto/secureSecrets');
 jest.mock('../aiService');
 jest.mock('../onDevice/OnDeviceContext', () => ({
-  useOnDevice: () => ({ provider: null }),
+  useOnDevice: () => ({
+    provider:         null,
+    status:           'unavailable',
+    downloadProgress: 0,
+    errorMessage:     null,
+    modelInfo:        { id: 'test', name: 'Test', sizeBytes: 0, url: '', filename: '' },
+    startDownload:    jest.fn(),
+    cancelDownload:   jest.fn(),
+    loadModel:        jest.fn(),
+    unloadModel:      jest.fn(),
+    deleteLocalModel: jest.fn(),
+  }),
 }));
 
 const mockSecretGet = secureSecrets.secretGet as jest.MockedFunction<typeof secureSecrets.secretGet>;
@@ -50,7 +61,7 @@ describe('AiContext', () => {
   it('loads persisted apiKey and consent on mount', async () => {
     mockSecretGet.mockImplementation(async (key) => {
       if (key === 'nj_gemini_apikey') return 'my-key';
-      if (key === 'nj_gemini_consent') return '1';
+      if (key === 'nj_ai_consent') return '1';
       return null;
     });
     let ctx!: ReturnType<typeof useAi>;
@@ -137,7 +148,7 @@ describe('AiContext', () => {
       await ctx.giveConsent();
     });
 
-    expect(mockSecretSet).toHaveBeenCalledWith('nj_gemini_consent', '1');
+    expect(mockSecretSet).toHaveBeenCalledWith('nj_ai_consent', '1');
     expect(result?.ok).toBe(true);
     if (result?.ok) expect(result.value).toBe('AI result');
   });
@@ -160,7 +171,54 @@ describe('AiContext', () => {
     await act(async () => {
       renderWithProvider((v) => (ctx = v));
     });
-    // No providers at all — no cloud, no consent needed for enrichment
     expect(ctx.canAutoEnrich).toBe(true);
+  });
+
+  it('canAutoEnrich is false when cloud provider exists and no consent', async () => {
+    mockSecretGet.mockImplementation(async (key) => {
+      if (key === 'nj_gemini_apikey') return 'my-key';
+      return null;
+    });
+    let ctx!: ReturnType<typeof useAi>;
+    await act(async () => {
+      renderWithProvider((v) => (ctx = v));
+    });
+    expect(ctx.hasCloudProvider).toBe(true);
+    expect(ctx.hasConsented).toBe(false);
+    expect(ctx.canAutoEnrich).toBe(false);
+  });
+
+  it('canAutoEnrich becomes true after giveConsent when cloud provider exists', async () => {
+    mockSecretGet.mockImplementation(async (key) => {
+      if (key === 'nj_gemini_apikey') return 'my-key';
+      return null;
+    });
+    mockAskAi.mockResolvedValue(ok('result'));
+
+    let ctx!: ReturnType<typeof useAi>;
+    await act(async () => {
+      renderWithProvider((v) => (ctx = v));
+    });
+    expect(ctx.canAutoEnrich).toBe(false);
+
+    act(() => { ctx.requestWithConsent('note', 'summarize'); });
+    await act(async () => { await ctx.giveConsent(); });
+
+    expect(ctx.hasConsented).toBe(true);
+    expect(ctx.canAutoEnrich).toBe(true);
+  });
+
+  it('migrates legacy nj_gemini_consent key to nj_ai_consent on load', async () => {
+    mockSecretGet.mockImplementation(async (key) => {
+      if (key === 'nj_gemini_consent') return '1';
+      return null;
+    });
+    let ctx!: ReturnType<typeof useAi>;
+    await act(async () => {
+      renderWithProvider((v) => (ctx = v));
+    });
+    expect(ctx.hasConsented).toBe(true);
+    expect(mockSecretSet).toHaveBeenCalledWith('nj_ai_consent', '1');
+    expect(mockSecretDelete).toHaveBeenCalledWith('nj_gemini_consent');
   });
 });

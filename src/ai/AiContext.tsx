@@ -21,13 +21,17 @@ import type { AiProvider } from './providers/types';
 export type { ClaudeConfig };
 
 const AI_APIKEY_KEY        = 'nj_gemini_apikey';
-const AI_CONSENT_KEY       = 'nj_gemini_consent';
+const AI_CONSENT_KEY       = 'nj_ai_consent';       // covers all cloud providers
 const AI_MODEL_KEY         = 'nj_gemini_model';
-const AI_AUTOENRICH_KEY    = 'nj_gemini_autoenrich';
+const AI_AUTOENRICH_KEY    = 'nj_ai_autoenrich';    // global, not Gemini-specific
 const AI_OLLAMA_CONFIG_KEY = 'nj_ollama_config';
 const AI_MLX_CONFIG_KEY    = 'nj_mlx_config';
 const AI_CUSTOM_CONFIG_KEY = 'nj_custom_config';
 const AI_CLAUDE_CONFIG_KEY = 'nj_claude_config';
+
+// Legacy key names — used only for one-time migration on first load
+const LEGACY_CONSENT_KEY    = 'nj_gemini_consent';
+const LEGACY_AUTOENRICH_KEY = 'nj_gemini_autoenrich';
 
 export const GEMINI_MODELS = [
   { id: 'gemini-3.1-flash-lite', label: 'Gemini 3.1 Flash Lite (default)' },
@@ -207,10 +211,30 @@ export function AiProvider({ children }: { children: ReactNode }) {
         secretGet(AI_CLAUDE_CONFIG_KEY),
       ]);
 
+    // One-time migration: move legacy nj_gemini_* keys to new names
+    let resolvedConsent    = consent;
+    let resolvedAutoEnrich = autoEnrichSaved;
+    if (!consent) {
+      const legacy = await secretGet(LEGACY_CONSENT_KEY);
+      if (legacy) {
+        await secretSet(AI_CONSENT_KEY, legacy);
+        await secretDelete(LEGACY_CONSENT_KEY);
+        resolvedConsent = legacy;
+      }
+    }
+    if (!autoEnrichSaved) {
+      const legacy = await secretGet(LEGACY_AUTOENRICH_KEY);
+      if (legacy) {
+        await secretSet(AI_AUTOENRICH_KEY, legacy);
+        await secretDelete(LEGACY_AUTOENRICH_KEY);
+        resolvedAutoEnrich = legacy;
+      }
+    }
+
     setApiKeyState(key);
-    setHasConsented(consent === '1');
+    setHasConsented(resolvedConsent === '1');
     if (savedModel) setModelState(savedModel);
-    setAutoEnrichState(autoEnrichSaved === '1');
+    setAutoEnrichState(resolvedAutoEnrich === '1');
     if (ollamaSaved) {
       try { setOllamaConfigState(JSON.parse(ollamaSaved) as OllamaConfig); } catch {}
     }

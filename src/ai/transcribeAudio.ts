@@ -2,7 +2,9 @@ import type { Result } from '../lib/result';
 import { ok, err } from '../lib/result';
 import { DEFAULT_GEMINI_MODEL } from './geminiService';
 
-const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+const GEMINI_BASE    = 'https://generativelanguage.googleapis.com/v1beta/models';
+const TIMEOUT_MS     = 30_000;
+const REDIRECT_CODES = new Set([301, 302, 303, 307, 308]);
 
 const RATE_WINDOW_MS = 60_000;
 const RATE_LIMIT     = 5;
@@ -29,11 +31,15 @@ export async function transcribeAudio(
 
   const url = `${GEMINI_BASE}/${encodeURIComponent(model)}:generateContent`;
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   let response: Response;
   try {
     response = await fetch(url, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+      method:   'POST',
+      redirect: 'manual',
+      signal:   controller.signal,
+      headers:  { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify({
         contents: [{
           parts: [
@@ -44,8 +50,16 @@ export async function transcribeAudio(
         generationConfig: { temperature: 0, maxOutputTokens: 2048 },
       }),
     });
+    if (response.type === 'opaqueredirect' || REDIRECT_CODES.has(response.status)) {
+      return err(new Error('Unexpected redirect — check Gemini API endpoint'));
+    }
   } catch (e) {
+    if (e instanceof Error && e.name === 'AbortError') {
+      return err(new Error('Transcription timed out after 30s'));
+    }
     return err(new Error(`Network error: ${e instanceof Error ? e.message : String(e)}`));
+  } finally {
+    clearTimeout(timer);
   }
 
   interface GeminiTranscribeResponse {
