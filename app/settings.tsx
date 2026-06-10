@@ -12,6 +12,8 @@ import { useSync } from '../src/sync/SyncContext';
 import { useNotes } from '../src/notes/NotesContext';
 import { webdavPush, webdavPull, testWebDavConnection } from '../src/sync/providers/webdavSync';
 import { exportToFile, importFromFile } from '../src/sync/providers/fileSync';
+import { classifySyncError } from '../src/sync/syncError';
+import { ConflictResolutionModal } from '../src/components/ConflictResolutionModal';
 import { Box } from '../src/design/components/Box';
 import { T } from '../src/design/components/T';
 import { Input } from '../src/design/components/Input';
@@ -166,7 +168,7 @@ export default function SettingsScreen() {
       await sync.setConfig({ provider: 'webdav', webdav: { url, username: wdUser.trim(), password: wdPass } });
       setSyncStatus('WebDAV configured ✓');
     } catch (e) {
-      setSyncStatus(e instanceof Error ? e.message : 'Connection test failed');
+      setSyncStatus(classifySyncError(e));
     } finally {
       setWdTesting(false);
     }
@@ -187,8 +189,11 @@ export default function SettingsScreen() {
         // 304 Not Modified — remote unchanged, nothing to merge
         setSyncStatus('Remote up to date');
       } else if (pullResult) {
-        await notes.importBundle(pullResult.bundle);
+        const mergeResult = await notes.importBundle(pullResult.bundle);
         newEtag = pullResult.etag;
+        if (mergeResult.conflicts.length > 0) {
+          sync.setPendingConflicts(mergeResult.conflicts);
+        }
       }
 
       // 2. Conditional push — skip upload if nothing changed locally since last sync
@@ -209,7 +214,9 @@ export default function SettingsScreen() {
       sync.setLastSyncAt(now);
       if (newEtag !== sync.lastEtag) sync.setLastEtag(newEtag);
     } catch (e) {
-      setSyncStatus(e instanceof Error ? e.message : 'Sync failed');
+      const errMsg = classifySyncError(e);
+      setSyncStatus(errMsg);
+      sync.setLastError(errMsg);
     } finally {
       setWdSyncing(false);
     }
@@ -237,14 +244,23 @@ export default function SettingsScreen() {
       const bundle = await importFromFile();
       if (!bundle) { setSyncStatus('Import cancelled'); return; }
       const result = await notes.importBundle(bundle);
+      if (result.conflicts.length > 0) {
+        sync.setPendingConflicts(result.conflicts);
+      }
       setSyncStatus(`Imported ${result.imported} note(s) ✓`);
     } catch (e) {
-      setSyncStatus(e instanceof Error ? e.message : 'Import failed');
+      setSyncStatus(classifySyncError(e));
     }
   }
 
   return (
     <Box screen style={styles.root}>
+      {sync.pendingConflicts.length > 0 && (
+        <ConflictResolutionModal
+          conflicts={sync.pendingConflicts}
+          onDone={sync.clearConflicts}
+        />
+      )}
       {/* Nav */}
       <View style={styles.nav}>
         <Pressable onPress={() => router.back()} style={styles.backBtn} testID="settings-back">

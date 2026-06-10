@@ -7,7 +7,13 @@ import { NotesRepository } from './NotesRepository';
 import { createNotesStore } from './notesStore';
 import type { Note } from './Note';
 import type { Database } from '../db/types';
-import { exportBundle as repoExportBundle, mergeBundle as repoMergeBundle, needsPush, type MergeResult } from '../sync/syncRepository';
+import {
+  exportBundle as repoExportBundle,
+  mergeBundle as repoMergeBundle,
+  applyRemoteVersion,
+  needsPush,
+  type MergeResult,
+} from '../sync/syncRepository';
 import type { SyncBundle } from '../sync/SyncBundle';
 
 interface NotesState {
@@ -20,9 +26,10 @@ interface NotesActions {
   updateNote:       (id: string, patch: Pick<Note, 'title' | 'content'> & { attachments?: Note['attachments'] }) => Promise<void>;
   patchNote:        (id: string, patch: Partial<Pick<Note, 'tags' | 'summary' | 'palette'>>) => Promise<void>;
   deleteNote:       (id: string) => Promise<void>;
-  exportBundle:     () => Promise<SyncBundle>;
-  importBundle:     (bundle: SyncBundle) => Promise<MergeResult>;
-  hasChangedSince:  (since: number) => Promise<boolean>;
+  exportBundle:    () => Promise<SyncBundle>;
+  importBundle:    (bundle: SyncBundle) => Promise<MergeResult>;
+  hasChangedSince: (since: number) => Promise<boolean>;
+  resolveConflict: (noteId: string, remoteEnvelope: string, remoteUpdatedAt: number) => Promise<void>;
 }
 
 const NotesContext = createContext<(NotesState & NotesActions) | undefined>(undefined);
@@ -109,8 +116,19 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
     return needsPush(db, since);
   }, []);
 
+  const resolveConflict = useCallback(async (
+    noteId: string,
+    remoteEnvelope: string,
+    remoteUpdatedAt: number,
+  ): Promise<void> => {
+    const db = dbRef.current;
+    if (!db) throw new Error('Database not available — vault may be locked');
+    await applyRemoteVersion(db, noteId, remoteEnvelope, remoteUpdatedAt);
+    await storeRef.current?.getState().loadNotes();
+  }, []);
+
   return (
-    <NotesContext.Provider value={{ notes, isLoading, createNote, updateNote, patchNote, deleteNote, exportBundle, importBundle, hasChangedSince }}>
+    <NotesContext.Provider value={{ notes, isLoading, createNote, updateNote, patchNote, deleteNote, exportBundle, importBundle, hasChangedSince, resolveConflict }}>
       {children}
     </NotesContext.Provider>
   );

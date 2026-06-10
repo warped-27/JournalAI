@@ -10,10 +10,12 @@ type UnlockResult = Result<void>;
 jest.mock('expo-secure-store', () => {
   const store: Record<string, string> = {};
   return {
-    getItemAsync:    jest.fn(async (key: string) => store[key] ?? null),
-    setItemAsync:    jest.fn(async (key: string, v: string) => { store[key] = v; }),
-    deleteItemAsync: jest.fn(async (key: string) => { delete store[key]; }),
-    __clear:         () => { Object.keys(store).forEach(k => delete store[k]); },
+    getItemAsync:                  jest.fn(async (key: string) => store[key] ?? null),
+    setItemAsync:                  jest.fn(async (key: string, v: string) => { store[key] = v; }),
+    deleteItemAsync:               jest.fn(async (key: string) => { delete store[key]; }),
+    canUseBiometricAuthentication: jest.fn(() => false),
+    WHEN_PASSCODE_SET_THIS_DEVICE_ONLY: 1,
+    __clear:                       () => { Object.keys(store).forEach(k => delete store[k]); },
   };
 });
 

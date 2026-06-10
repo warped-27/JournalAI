@@ -42,9 +42,19 @@ export async function needsPush(db: Database, since: number): Promise<boolean> {
   return (row?.c ?? 0) > 0;
 }
 
+/** A note that exists on both devices with differing content, where local was kept. */
+export interface ConflictInfo {
+  noteId:          string;
+  localUpdatedAt:  number;
+  remoteUpdatedAt: number;
+  /** The remote version's encrypted envelope — user can choose to restore it. */
+  remoteEnvelope:  string;
+}
+
 export interface MergeResult {
-  imported: number;
-  skipped:  number;
+  imported:  number;
+  skipped:   number;
+  conflicts: ConflictInfo[];
 }
 
 const BASE64URL_RE = /^[A-Za-z0-9_-]+$/;
@@ -64,16 +74,17 @@ function isValidRow(r: unknown): r is NoteRow {
 }
 
 export async function mergeBundle(db: Database, bundle: SyncBundle): Promise<MergeResult> {
-  let imported = 0;
-  let skipped  = 0;
+  let imported  = 0;
+  let skipped   = 0;
+  const conflicts: ConflictInfo[] = [];
 
   // Wrap all writes in a transaction so a mid-import crash leaves the DB clean.
   await db.withTransactionAsync(async () => {
     for (const row of bundle.notes) {
       if (!isValidRow(row)) { skipped++; continue; }
 
-      const existing = await db.getFirstAsync<{ updated_at: number }>(
-        'SELECT updated_at FROM notes WHERE id = ?',
+      const existing = await db.getFirstAsync<{ updated_at: number; envelope: string }>(
+        'SELECT updated_at, envelope FROM notes WHERE id = ?',
         [row.id],
       );
 
@@ -90,10 +101,32 @@ export async function mergeBundle(db: Database, bundle: SyncBundle): Promise<Mer
         );
         imported++;
       } else {
+        // Local is newer or same age — keep local but record a conflict if data differs
+        if (row.envelope !== existing.envelope) {
+          conflicts.push({
+            noteId:          row.id,
+            localUpdatedAt:  existing.updated_at,
+            remoteUpdatedAt: row.updated_at,
+            remoteEnvelope:  row.envelope,
+          });
+        }
         skipped++;
       }
     }
   });
 
-  return { imported, skipped };
+  return { imported, skipped, conflicts };
+}
+
+/** Overwrites a note's envelope with a previously-recorded remote version. */
+export async function applyRemoteVersion(
+  db: Database,
+  noteId: string,
+  remoteEnvelope: string,
+  remoteUpdatedAt: number,
+): Promise<void> {
+  await db.runAsync(
+    'UPDATE notes SET envelope = ?, updated_at = ? WHERE id = ?',
+    [remoteEnvelope, remoteUpdatedAt, noteId],
+  );
 }

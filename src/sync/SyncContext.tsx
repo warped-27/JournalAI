@@ -8,6 +8,7 @@ import React, {
 } from 'react';
 import { secretGet, secretSet } from '../crypto/secureSecrets';
 import type { WebDavConfig } from './providers/webdavSync';
+import type { ConflictInfo } from './syncRepository';
 
 const SYNC_CFG_KEY  = 'nj_sync_config';
 const SYNC_META_KEY = 'nj_sync_meta';
@@ -39,6 +40,10 @@ interface SyncContextValue {
   showOnboarding: boolean;
   dismissOnboarding: () => void;
   triggerOnboarding: () => void;
+  /** Conflicts detected during the most recent sync. Cleared after user dismisses. */
+  pendingConflicts:    ConflictInfo[];
+  setPendingConflicts: (c: ConflictInfo[]) => void;
+  clearConflicts:      () => void;
 }
 
 const SyncContext = createContext<SyncContextValue | null>(null);
@@ -48,8 +53,9 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const [isSyncing,       setIsSyncing]       = useState(false);
   const [lastSyncAt,      setLastSyncAtState] = useState<number | null>(null);
   const [lastEtag,        setLastEtagState]   = useState<string | null>(null);
-  const [lastError,       setLastError]       = useState<string | null>(null);
-  const [showOnboarding,  setShowOnboarding]  = useState(false);
+  const [lastError,        setLastError]        = useState<string | null>(null);
+  const [showOnboarding,   setShowOnboarding]   = useState(false);
+  const [pendingConflicts, setPendingConflicts] = useState<ConflictInfo[]>([]);
 
   useEffect(() => {
     secretGet(SYNC_CFG_KEY).then((raw) => {
@@ -90,6 +96,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
   const dismissOnboarding = useCallback(() => setShowOnboarding(false), []);
   const triggerOnboarding = useCallback(() => setShowOnboarding(true),  []);
+  const clearConflicts    = useCallback(() => setPendingConflicts([]),   []);
 
   return (
     <SyncContext.Provider
@@ -108,6 +115,9 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         showOnboarding,
         dismissOnboarding,
         triggerOnboarding,
+        pendingConflicts,
+        setPendingConflicts,
+        clearConflicts,
       }}
     >
       {children}
