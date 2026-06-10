@@ -2,8 +2,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import type { ModelInfo } from './modelInfo';
 
 const MODEL_DIR_SUFFIX = 'nerd_journal_models/';
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const _fs = FileSystem as any;
+const _fs = FileSystem as any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 export function getModelDir(): string {
   return (_fs.documentDirectory ?? '') + MODEL_DIR_SUFFIX;

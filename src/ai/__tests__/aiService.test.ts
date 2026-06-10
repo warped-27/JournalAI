@@ -1,7 +1,6 @@
 import { askAi } from '../aiService';
 import { DEFAULT_RATE_LIMITER } from '../rateLimiter';
 import type { AiProvider } from '../providers/types';
-import { ok, err } from '../../lib/result';
 
 function makeProvider(response: string | Error): AiProvider {
   return {

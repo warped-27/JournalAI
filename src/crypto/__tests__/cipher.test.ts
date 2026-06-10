@@ -1,5 +1,4 @@
 import { encrypt, decrypt, ENVELOPE_OVERHEAD, ENVELOPE_VERSION } from '../cipher';
-import { getRandomBytes } from '../random';
 
 const KEY = new Uint8Array(32).fill(0xab);
 

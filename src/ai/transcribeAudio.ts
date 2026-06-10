@@ -63,7 +63,7 @@ export async function transcribeAudio(
   }
 
   interface GeminiTranscribeResponse {
-    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    candidates?: { content?: { parts?: { text?: string }[] } }[];
     error?: { message: string; code?: number };
   }
 

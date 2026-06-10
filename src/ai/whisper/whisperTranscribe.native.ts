@@ -1,3 +1,4 @@
+// eslint-disable-next-line import/no-unresolved
 import { initWhisper, type WhisperContext } from 'whisper.rn';
 
 export const WHISPER_RN_AVAILABLE = true;

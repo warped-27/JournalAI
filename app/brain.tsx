@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import {
   FlatList, KeyboardAvoidingView, Platform,
-  Pressable, ScrollView, StyleSheet, TextInput, View,
+  Pressable, StyleSheet, TextInput, View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useNotes } from '../src/notes/NotesContext';
@@ -154,7 +154,7 @@ export default function BrainScreen() {
           <T variant="kicker">← back</T>
         </Pressable>
         <View style={styles.headerRight}>
-          <T variant="kicker" style={styles.headerTitle}>// SECOND BRAIN</T>
+          <T variant="kicker" style={styles.headerTitle}>{'// SECOND BRAIN'}</T>
           <T variant="caption" style={styles.noteCount}>{notes.length} notes indexed</T>
         </View>
       </View>

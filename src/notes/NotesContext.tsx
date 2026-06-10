@@ -51,12 +51,12 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       unsubRef.current?.();
       unsubRef.current = null;
       storeRef.current = null;
-      setNotes([]);
+      setNotes([]); // eslint-disable-line react-hooks/set-state-in-effect
       return;
     }
 
     const key = vault.getKey();
-    if (!key) return;
+    if (!key || key.length !== 32) return;
 
     let cancelled = false;
     (async () => {
@@ -77,7 +77,7 @@ export function NotesProvider({ children }: { children: React.ReactNode }) {
       unsubRef.current?.();
       unsubRef.current = null;
     };
-  }, [vault.isUnlocked]);
+  }, [vault.isUnlocked]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const createNote = useCallback(async (draft: Pick<Note, 'title' | 'content'> & { attachments?: Note['attachments'] }): Promise<Note | null> => {
     if (!storeRef.current) return null;

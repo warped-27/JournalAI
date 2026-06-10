@@ -56,13 +56,13 @@ export function WhisperProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isNativePlatform() || !WHISPER_RN_AVAILABLE) {
-      setStatus('unavailable');
+      setStatus('unavailable'); // eslint-disable-line react-hooks/set-state-in-effect
       return;
     }
     isModelDownloaded(model)
       .then((exists) => setStatus(exists ? 'ready' : 'not-downloaded'))
       .catch(() => setStatus('not-downloaded'));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startDownload = useCallback(async () => {
     if (!isNativePlatform()) return;

@@ -19,7 +19,7 @@ const TIMEOUT_MS = 30_000;
 const REDIRECT_CODES = new Set([301, 302, 303, 307, 308]);
 
 interface AnthropicResponse {
-  content?: Array<{ type: string; text?: string }>;
+  content?: { type: string; text?: string }[];
   error?:   { message: string };
 }
 

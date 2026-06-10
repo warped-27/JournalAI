@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { View, Animated, StyleSheet, type ViewStyle } from 'react-native';
 import { T } from '../design/components/T';
 import { Colors, Typography } from '../design/tokens';
@@ -20,8 +20,8 @@ interface Props {
 }
 
 export function NerdLogo({ size = 'md', tagline, showDot = false, style }: Props) {
-  const cursorOpacity = useRef(new Animated.Value(1)).current;
-  const dotOpacity    = useRef(new Animated.Value(1)).current;
+  const cursorOpacity = useMemo(() => new Animated.Value(1), []);
+  const dotOpacity    = useMemo(() => new Animated.Value(1), []);
   const { fontSize, cursorW, cursorH } = SIZE_MAP[size];
 
   useEffect(() => {

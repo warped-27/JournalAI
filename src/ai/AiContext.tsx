@@ -16,7 +16,7 @@ import { makeGeminiProvider } from './providers/geminiProvider';
 import { makeOpenAiCompatProvider } from './providers/openAiCompatProvider';
 import { makeClaudeProvider, type ClaudeConfig, DEFAULT_CLAUDE_MODEL } from './providers/claudeProvider';
 import { useOnDevice } from './onDevice/OnDeviceContext';
-import type { AiProvider } from './providers/types';
+import type { AiProvider as AiProviderType } from './providers/types';
 
 export type { ClaudeConfig };
 
@@ -149,8 +149,8 @@ export function AiProvider({ children }: { children: ReactNode }) {
   } | null>(null);
 
   // ── Provider list (local-first: on-device → Ollama → MLX → Custom → Claude → Gemini) ──
-  const providers = useMemo((): AiProvider[] => {
-    const list: AiProvider[] = [];
+  const providers = useMemo((): AiProviderType[] => {
+    const list: AiProviderType[] = [];
     if (onDevice.provider) {
       list.push(onDevice.provider);
     }
@@ -249,6 +249,7 @@ export function AiProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   React.useEffect(() => { void loadSettings(); }, [loadSettings]);
 
   // ── Gemini key / model ─────────────────────────────────────────────────────

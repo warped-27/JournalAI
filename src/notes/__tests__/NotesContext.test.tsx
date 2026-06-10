@@ -41,7 +41,7 @@ type NotesSnapshot = ReturnType<typeof useNotes>;
 let captured!: NotesSnapshot;
 
 function Probe() {
-  captured = useNotes();
+  captured = useNotes(); // eslint-disable-line react-hooks/globals
   return null;
 }
 

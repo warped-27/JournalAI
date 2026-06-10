@@ -34,8 +34,7 @@ export function sanitizeInput(text: string): string {
   s = s.replace(/\x00/g, '');
 
   // Strip control chars except \n (0x0A) and \t (0x09)
-  // eslint-disable-next-line no-control-regex
-  s = s.replace(/[\x01-\x08\x0B-\x1F\x7F]/g, '');
+  s = s.replace(/[\x01-\x08\x0B-\x1F\x7F]/g, ''); // eslint-disable-line no-control-regex
 
   // Normalize non-ASCII whitespace to regular space so injection patterns
   // cannot be bypassed using Unicode lookalikes (no-break space, em/en spaces, etc.).

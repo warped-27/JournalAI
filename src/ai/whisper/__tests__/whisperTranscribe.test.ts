@@ -6,6 +6,7 @@ jest.mock('whisper.rn', () => ({
   initWhisper: jest.fn(),
 }));
 
+// eslint-disable-next-line import/no-unresolved
 import { initWhisper } from 'whisper.rn';
 import {
   WHISPER_RN_AVAILABLE,

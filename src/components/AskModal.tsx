@@ -29,12 +29,13 @@ export function AskModal({ visible, onClose }: Props) {
   const router     = useRouter();
 
   useEffect(() => {
-    if (visible) {
-      setQuestion('');
-      setAnswer('');
-      setSources([]);
-      setError('');
-    }
+    if (!visible) return;
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setQuestion('');
+    setAnswer('');
+    setSources([]);
+    setError('');
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [visible]);
 
   async function handleAsk() {
@@ -80,7 +81,7 @@ export function AskModal({ visible, onClose }: Props) {
 
           {/* Header */}
           <View style={styles.header}>
-            <T variant="kicker" style={styles.headerTitle}>// ASK YOUR NOTES</T>
+            <T variant="kicker" style={styles.headerTitle}>{'// ASK YOUR NOTES'}</T>
             <Pressable onPress={handleClose} testID="ask-close">
               <T variant="muted">✕</T>
             </Pressable>
@@ -120,7 +121,7 @@ export function AskModal({ visible, onClose }: Props) {
 
                 {sources.length > 0 && (
                   <>
-                    <T variant="label" style={styles.sourcesLabel}>// SOURCES</T>
+                    <T variant="label" style={styles.sourcesLabel}>{'// SOURCES'}</T>
                     {sources.map((n, i) => (
                       <Pressable
                         key={n.id}

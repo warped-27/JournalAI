@@ -64,6 +64,14 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
     secretGet(BIOMETRIC_ENABLED_KEY).then((v) => setBiometricEnabled(v === 'true'));
   }, []);
 
+  const lock = useCallback(() => {
+    if (keyRef.current) {
+      keyRef.current.fill(0); // zero key bytes before GC
+      keyRef.current = undefined;
+    }
+    setIsUnlocked(false);
+  }, []);
+
   useEffect(() => {
     const handler = (nextState: AppStateStatus) => {
       if (nextState === 'background' || nextState === 'inactive') {
@@ -80,15 +88,7 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
       sub.remove();
       if (bgTimerRef.current !== undefined) clearTimeout(bgTimerRef.current);
     };
-  }, []);
-
-  const lock = useCallback(() => {
-    if (keyRef.current) {
-      keyRef.current.fill(0);
-      keyRef.current = undefined;
-    }
-    setIsUnlocked(false);
-  }, []);
+  }, [lock]);
 
   const create = useCallback(async (password: string): Promise<Result<void>> => {
     try {
@@ -147,6 +147,10 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const wipe = useCallback(async () => {
+    if (bgTimerRef.current !== undefined) {
+      clearTimeout(bgTimerRef.current);
+      bgTimerRef.current = undefined;
+    }
     await disableBiometrics();
     lock();
     await clearVault();

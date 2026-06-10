@@ -46,7 +46,8 @@ export function parseBundle(raw: string): SyncBundle {
     (parsed as Record<string, unknown>)['version'] !== 1 ||
     typeof (parsed as Record<string, unknown>)['salt'] !== 'string' ||
     !Array.isArray((parsed as Record<string, unknown>)['notes']) ||
-    typeof (parsed as Record<string, unknown>)['exportedAt'] !== 'number'
+    typeof (parsed as Record<string, unknown>)['exportedAt'] !== 'number' ||
+    typeof (parsed as Record<string, unknown>)['deviceId'] !== 'string'
   ) {
     throw new Error('Invalid sync bundle format');
   }

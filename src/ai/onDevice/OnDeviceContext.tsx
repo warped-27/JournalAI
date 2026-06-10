@@ -58,13 +58,13 @@ export function OnDeviceProvider({ children }: { children: ReactNode }) {
   // ── Initial availability check ─────────────────────────────────────────────
   useEffect(() => {
     if (!isNativePlatform() || !LLAMA_RN_AVAILABLE) {
-      setStatus('unavailable');
+      setStatus('unavailable'); // eslint-disable-line react-hooks/set-state-in-effect
       return;
     }
     isModelDownloaded(model)
       .then((exists) => setStatus(exists ? 'ready' : 'not-downloaded'))
       .catch(() => setStatus('not-downloaded'));
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Download ───────────────────────────────────────────────────────────────
   const startDownload = useCallback(async () => {

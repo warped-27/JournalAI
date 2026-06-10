@@ -7,7 +7,9 @@ jest.mock('llama.rn', () => ({
   initLlama: jest.fn(),
 }));
 
+// eslint-disable-next-line import/first
 import { initLlama } from 'llama.rn';
+// eslint-disable-next-line import/first
 import { initLlamaRnProvider, releaseLlamaRnProvider, LLAMA_RN_AVAILABLE } from '../providers/llamaRnProvider';
 
 const mockInitLlama = initLlama as jest.Mock;

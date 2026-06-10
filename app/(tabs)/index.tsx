@@ -81,7 +81,7 @@ export default function HomeScreen() {
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
-              <T variant="kicker" style={styles.emptyKicker}>// no entries</T>
+              <T variant="kicker" style={styles.emptyKicker}>{'// no entries'}</T>
               <T variant="muted" style={styles.emptyHint}>
                 {IS_DESKTOP ? 'Press Cmd+N to write your first log.' : 'Press + to write your first log.'}
               </T>
@@ -94,7 +94,7 @@ export default function HomeScreen() {
 
   const desktopPlaceholder = (
     <View style={styles.desktopPlaceholder}>
-      <T variant="kicker" style={styles.placeholderLabel}>// SELECT AN ENTRY</T>
+      <T variant="kicker" style={styles.placeholderLabel}>{'// SELECT AN ENTRY'}</T>
       <T variant="muted" style={styles.placeholderHint}>
         Choose a note from the sidebar, or press Cmd+N to create one.
       </T>

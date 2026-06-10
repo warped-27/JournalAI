@@ -3,7 +3,7 @@ import TestRenderer, { act } from 'react-test-renderer';
 import { AiProvider, useAi } from '../AiContext';
 import * as secureSecrets from '../../crypto/secureSecrets';
 import * as aiService from '../aiService';
-import { ok, err } from '../../lib/result';
+import { ok } from '../../lib/result';
 
 jest.mock('../../crypto/secureSecrets');
 jest.mock('../aiService');

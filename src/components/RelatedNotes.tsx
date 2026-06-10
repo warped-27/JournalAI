@@ -22,7 +22,7 @@ export function RelatedNotes({ currentNote, allNotes, onOpen }: Props) {
 
   return (
     <View style={styles.wrap} testID="related-notes">
-      <T variant="label" style={styles.heading}>// RELATED</T>
+      <T variant="label" style={styles.heading}>{'// RELATED'}</T>
       {related.map((note) => (
         <Pressable
           key={note.id}

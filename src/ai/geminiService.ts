@@ -13,10 +13,10 @@ export interface GeminiRequest {
 }
 
 interface GeminiApiResponse {
-  candidates?: Array<{
-    content?: { parts?: Array<{ text?: string }> };
+  candidates?: {
+    content?: { parts?: { text?: string }[] };
     finishReason?: string;
-  }>;
+  }[];
   error?: { message: string; code?: number };
 }
 

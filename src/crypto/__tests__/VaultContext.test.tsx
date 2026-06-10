@@ -54,7 +54,7 @@ type VaultSnapshot = ReturnType<typeof useVault>;
 let captured: VaultSnapshot | undefined;
 
 function Probe() {
-  captured = useVault();
+  captured = useVault(); // eslint-disable-line react-hooks/globals
   return null;
 }
 

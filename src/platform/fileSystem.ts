@@ -50,8 +50,7 @@ async function nativeReadFile(): Promise<string | null> {
 
 async function nativeWriteFile(content: string, name: string): Promise<void> {
   const FileSystem = await import('expo-file-system/legacy');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const uri = ((FileSystem as any).cacheDirectory ?? '') + name;
+  const uri = ((FileSystem as any).cacheDirectory ?? '') + name; // eslint-disable-line @typescript-eslint/no-explicit-any
   await FileSystem.writeAsStringAsync(uri, content, { encoding: FileSystem.EncodingType.UTF8 });
   const Sharing = await import('expo-sharing');
   if (await Sharing.isAvailableAsync()) {

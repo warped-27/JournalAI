@@ -11,7 +11,7 @@ export interface OpenAiCompatConfig {
 }
 
 interface OaiResponse {
-  choices?: Array<{ message?: { content?: string } }>;
+  choices?: { message?: { content?: string } }[];
   error?: { message: string };
 }
 

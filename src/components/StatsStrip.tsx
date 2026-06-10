@@ -41,7 +41,7 @@ export function StatsStrip({ notes }: Props) {
 
       {/* ── Daily prompt ───────────────────────────────────────── */}
       <View style={styles.promptRow} testID="daily-prompt">
-        <T variant="kicker" style={styles.promptLabel}>// PROMPT</T>
+        <T variant="kicker" style={styles.promptLabel}>{'// PROMPT'}</T>
         <T variant="muted"  style={styles.promptText}>{prompt}</T>
       </View>
 

@@ -79,9 +79,12 @@ export async function mergeBundle(db: Database, bundle: SyncBundle): Promise<Mer
   const conflicts: ConflictInfo[] = [];
 
   // Wrap all writes in a transaction so a mid-import crash leaves the DB clean.
+  const seenIds = new Set<string>();
   await db.withTransactionAsync(async () => {
     for (const row of bundle.notes) {
       if (!isValidRow(row)) { skipped++; continue; }
+      if (seenIds.has(row.id)) { skipped++; continue; }
+      seenIds.add(row.id);
 
       const existing = await db.getFirstAsync<{ updated_at: number; envelope: string }>(
         'SELECT updated_at, envelope FROM notes WHERE id = ?',

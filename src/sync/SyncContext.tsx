@@ -62,7 +62,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     secretGet(SYNC_CFG_KEY).then((raw) => {
       if (!raw) return;
-      try { setConfigState(JSON.parse(raw) as SyncConfig); } catch {}
+      try { setConfigState(JSON.parse(raw) as SyncConfig); }
+      catch { console.warn('[SyncContext] failed to parse stored sync config'); }
     });
     secretGet(SYNC_META_KEY).then((raw) => {
       if (!raw) return;

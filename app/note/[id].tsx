@@ -43,7 +43,7 @@ export default function NoteScreen() {
       if (router.canGoBack()) router.back();
       else router.replace('/');
     }
-  }, [note, id]);
+  }, [note, id, router]);
 
   // Tracks in-flight enrichment so a stale result doesn't overwrite a re-edit
   const enrichAbortRef = useRef<{ aborted: boolean } | null>(null);

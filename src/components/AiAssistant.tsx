@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TextInput, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import { View, TextInput, StyleSheet, ScrollView } from 'react-native';
 import { useAi } from '../ai/AiContext';
 import { T } from '../design/components/T';
 import { Btn } from '../design/components/Btn';
