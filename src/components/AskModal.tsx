@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   View, Modal, ScrollView, StyleSheet,
   Pressable, TextInput,
@@ -10,6 +10,7 @@ import { Colors, Spacing, Typography } from '../design/tokens';
 import { useAi }       from '../ai/AiContext';
 import { useNotes }    from '../notes/NotesContext';
 import { buildAskPrompt, getRelevantNotes } from '../ai/askNotes';
+import { PrivacyConsentDialog } from './PrivacyConsentDialog';
 import type { Note } from '../notes/Note';
 
 interface Props {
@@ -18,11 +19,13 @@ interface Props {
 }
 
 export function AskModal({ visible, onClose }: Props) {
-  const [question, setQuestion] = useState('');
-  const [answer,   setAnswer]   = useState('');
-  const [sources,  setSources]  = useState<Note[]>([]);
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState('');
+  const [question,        setQuestion]        = useState('');
+  const [answer,          setAnswer]          = useState('');
+  const [sources,         setSources]         = useState<Note[]>([]);
+  const [loading,         setLoading]         = useState(false);
+  const [error,           setError]           = useState('');
+  const [awaitingConsent, setAwaitingConsent] = useState(false);
+  const pendingAskRef = useRef<{ q: string; prompt: string; relevant: Note[] } | null>(null);
 
   const ai         = useAi();
   const { notes }  = useNotes();
@@ -38,18 +41,13 @@ export function AskModal({ visible, onClose }: Props) {
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [visible]);
 
-  async function handleAsk() {
-    const q = question.trim();
-    if (!q || loading) return;
+  async function executeAsk(prompt: string, relevant: Note[]) {
     setLoading(true);
     setAnswer('');
     setSources([]);
     setError('');
     try {
-      const relevant = getRelevantNotes(q, notes, 5);
-      const pool     = relevant.length > 0 ? relevant : notes.slice(0, 5);
-      const prompt   = buildAskPrompt(q, pool);
-      const result   = await ai.doComplete(prompt);
+      const result = await ai.doComplete(prompt);
       if (result.ok) {
         setAnswer(result.value.trim());
         setSources(relevant);
@@ -59,6 +57,35 @@ export function AskModal({ visible, onClose }: Props) {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleAsk() {
+    const q = question.trim();
+    if (!q || loading) return;
+    const relevant = getRelevantNotes(q, notes, 5);
+    const pool     = relevant.length > 0 ? relevant : notes.slice(0, 5);
+    const prompt   = buildAskPrompt(q, pool);
+
+    if (ai.hasCloudProvider && !ai.hasConsented) {
+      pendingAskRef.current = { q, prompt, relevant };
+      setAwaitingConsent(true);
+      return;
+    }
+
+    await executeAsk(prompt, relevant);
+  }
+
+  async function handleConsentAccept() {
+    setAwaitingConsent(false);
+    await ai.giveConsent();
+    const pending = pendingAskRef.current;
+    pendingAskRef.current = null;
+    if (pending) await executeAsk(pending.prompt, pending.relevant);
+  }
+
+  function handleConsentDecline() {
+    setAwaitingConsent(false);
+    pendingAskRef.current = null;
   }
 
   function handleOpenNote(note: Note) {
@@ -76,6 +103,13 @@ export function AskModal({ visible, onClose }: Props) {
 
   return (
     <Modal visible={visible} animationType="slide" transparent testID="ask-modal">
+      <PrivacyConsentDialog
+        visible={awaitingConsent}
+        providerName={ai.cloudProviderName ?? 'cloud AI'}
+        contentDescription="your journal notes (up to 5 most relevant entries)"
+        onAccept={handleConsentAccept}
+        onDecline={handleConsentDecline}
+      />
       <View style={styles.overlay}>
         <View style={styles.sheet}>
 

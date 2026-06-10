@@ -5,13 +5,15 @@ import { Btn } from '../design/components/Btn';
 import { Colors, Spacing } from '../design/tokens';
 
 interface Props {
-  visible:      boolean;
-  providerName: string;
-  onAccept:     () => void;
-  onDecline:    () => void;
+  visible:             boolean;
+  providerName:        string;
+  /** Describes what data is being sent — defaults to "the note content". */
+  contentDescription?: string;
+  onAccept:            () => void;
+  onDecline:           () => void;
 }
 
-export function PrivacyConsentDialog({ visible, providerName, onAccept, onDecline }: Props) {
+export function PrivacyConsentDialog({ visible, providerName, contentDescription = 'the note content', onAccept, onDecline }: Props) {
   return (
     <Modal
       visible={visible}
@@ -26,7 +28,7 @@ export function PrivacyConsentDialog({ visible, providerName, onAccept, onDeclin
 
           <ScrollView style={styles.body} testID="consent-body">
             <T variant="body">
-              To process your request, the note content will be{' '}
+              To process your request, {contentDescription} will be{' '}
               <T variant="mono">decrypted in memory</T> and sent to{' '}
               <T variant="mono">{providerName}</T> via an encrypted HTTPS connection.
             </T>
