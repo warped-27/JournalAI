@@ -136,13 +136,14 @@ function SetupScreen() {
 
 function UnlockScreen() {
   const vault = useVault();
-  const [password, setPassword] = useState('');
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState('');
+  const [password,   setPassword]   = useState('');
+  const [loading,    setLoading]    = useState(false);
+  const [bioLoading, setBioLoading] = useState(false);
+  const [error,      setError]      = useState('');
 
   // Auto-trigger biometric prompt on mount if the user has it enabled
   useEffect(() => {
-    if (vault.biometricEnabled) handleBiometricUnlock();
+    if (vault.biometricEnabled) handleBiometric();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -156,11 +157,11 @@ function UnlockScreen() {
     if (!result.ok) setError('Wrong password.');
   }
 
-  async function handleBiometricUnlock() {
+  async function handleBiometric() {
+    setBioLoading(true);
     setError('');
-    setLoading(true);
     const result = await vault.unlockWithBiometrics();
-    setLoading(false);
+    setBioLoading(false);
     if (!result.ok) setError(result.error);
   }
 
@@ -187,7 +188,7 @@ function UnlockScreen() {
       <Btn
         label="UNLOCK"
         onPress={handleUnlock}
-        loading={loading && !vault.biometricEnabled}
+        loading={loading}
         style={styles.btn}
         testID="unlock-btn"
       />
@@ -195,10 +196,10 @@ function UnlockScreen() {
       {vault.biometricEnabled && (
         <Btn
           variant="ghost"
-          label="USE BIOMETRICS"
-          onPress={handleBiometricUnlock}
-          loading={loading && vault.biometricEnabled}
-          style={styles.biometricBtn}
+          label={bioLoading ? 'AUTHENTICATING…' : 'BIOMETRIC UNLOCK'}
+          onPress={handleBiometric}
+          loading={bioLoading}
+          style={[styles.btn, styles.bioBtn]}
           testID="biometric-unlock-btn"
         />
       )}
@@ -245,7 +246,7 @@ const styles = StyleSheet.create({
   hint:  { marginBottom: Spacing.lg },
   input:        { marginBottom: Spacing.md },
   btn:          { marginTop: Spacing.md },
-  biometricBtn: { marginTop: Spacing.sm },
+  bioBtn:       { marginTop: Spacing.sm },
   platformBlock: {
     borderLeftWidth: 2,
     borderLeftColor: Colors.border,

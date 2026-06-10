@@ -50,6 +50,7 @@ export default function RootLayout() {
               <Stack.Screen name="(tabs)"    />
               <Stack.Screen name="note/[id]" />
               <Stack.Screen name="settings"  />
+              <Stack.Screen name="brain"     />
             </Stack>
           </NotesProvider>
         </AuthGuard>

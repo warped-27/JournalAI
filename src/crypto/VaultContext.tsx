@@ -40,7 +40,7 @@ interface VaultActions {
   lock:    () => void;
   wipe:    () => Promise<void>;
   /** Store vault key in secure enclave and enable biometric unlock. Requires vault to be unlocked. */
-  enableBiometrics:  () => Promise<void>;
+  enableBiometrics:  () => Promise<Result<void>>;
   /** Remove stored key from secure enclave and disable biometric unlock. */
   disableBiometrics: () => Promise<void>;
   /** Exposed for encrypting/decrypting notes — undefined when locked */
@@ -64,7 +64,6 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
     secretGet(BIOMETRIC_ENABLED_KEY).then((v) => setBiometricEnabled(v === 'true'));
   }, []);
 
-  // Auto-lock when the app goes to background for > AUTO_LOCK_MS
   useEffect(() => {
     const handler = (nextState: AppStateStatus) => {
       if (nextState === 'background' || nextState === 'inactive') {
@@ -85,7 +84,7 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
 
   const lock = useCallback(() => {
     if (keyRef.current) {
-      keyRef.current.fill(0); // zero the key bytes before GC
+      keyRef.current.fill(0);
       keyRef.current = undefined;
     }
     setIsUnlocked(false);
@@ -108,22 +107,37 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
     if (!result.ok) return result;
     keyRef.current = result.value;
     setIsUnlocked(true);
+    // Re-check biometric enrolment flag on successful unlock
+    const avail = await isBiometricsAvailable();
+    if (avail) {
+      setBiometricEnabled((await secretGet(BIOMETRIC_ENABLED_KEY)) === 'true');
+    }
     return ok(undefined);
   }, []);
 
   const unlockWithBiometrics = useCallback(async (): Promise<Result<void>> => {
-    const key = await retrieveBiometricKey();
-    if (!key) return err('Biometric unlock cancelled or unavailable.');
-    keyRef.current = key;
-    setIsUnlocked(true);
-    return ok(undefined);
+    try {
+      const key = await retrieveBiometricKey();
+      if (!key) return err('Biometric key not found — re-enable biometrics');
+      keyRef.current = key;
+      setIsUnlocked(true);
+      return ok(undefined);
+    } catch (e) {
+      return err(e instanceof Error ? e.message : 'Biometric unlock failed');
+    }
   }, []);
 
-  const enableBiometrics = useCallback(async () => {
-    if (!keyRef.current) return;
-    await storeBiometricKey(keyRef.current);
-    await secretSet(BIOMETRIC_ENABLED_KEY, 'true');
-    setBiometricEnabled(true);
+  const enableBiometrics = useCallback(async (): Promise<Result<void>> => {
+    const key = keyRef.current;
+    if (!key) return err('Vault is locked — unlock with password first');
+    try {
+      await storeBiometricKey(key);
+      await secretSet(BIOMETRIC_ENABLED_KEY, 'true');
+      setBiometricEnabled(true);
+      return ok(undefined);
+    } catch (e) {
+      return err(e instanceof Error ? e.message : 'Failed to enable biometrics');
+    }
   }, []);
 
   const disableBiometrics = useCallback(async () => {

@@ -9,6 +9,8 @@ import { Box } from '../../src/design/components/Box';
 import { T }   from '../../src/design/components/T';
 import { Colors, Spacing } from '../../src/design/tokens';
 import type { Note } from '../../src/notes/Note';
+import { noteToMarkdown } from '../../src/export/markdownExport';
+import { saveTextFile }   from '../../src/platform/fileSystem';
 
 export default function NoteScreen() {
   const { id }   = useLocalSearchParams<{ id: string }>();
@@ -85,6 +87,15 @@ export default function NoteScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn} testID="back-btn">
           <T variant="kicker">← back</T>
         </Pressable>
+        {note && (
+          <Pressable
+            onPress={() => saveTextFile(noteToMarkdown(note), `${note.title || 'note'}.md`).catch(() => {})}
+            style={styles.mdBtn}
+            testID="note-export-md"
+          >
+            <T variant="kicker" style={styles.mdBtnText}>MD</T>
+          </Pressable>
+        )}
       </View>
 
       <NoteEditor
@@ -107,11 +118,19 @@ export default function NoteScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   nav: {
+    flexDirection:     'row',
+    alignItems:        'center',
+    justifyContent:    'space-between',
     paddingHorizontal: Spacing.md,
     paddingTop:        Spacing.xl,
     paddingBottom:     Spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
-  backBtn: { alignSelf: 'flex-start' },
+  backBtn:    { alignSelf: 'flex-start' },
+  mdBtn: {
+    borderWidth: 1, borderColor: Colors.border,
+    paddingHorizontal: Spacing.sm, paddingVertical: 4,
+  },
+  mdBtnText:  { color: Colors.textMuted },
 });

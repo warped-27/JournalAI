@@ -25,7 +25,7 @@ export function ConflictResolutionModal({ conflicts, onDone }: Props) {
   const [resolved, setResolved] = useState<Set<string>>(new Set());
   const [loading,  setLoading]  = useState<string | null>(null);
 
-  async function handleKeepRemote(conflict: ConflictInfo) {
+  async function handleUseRemote(conflict: ConflictInfo) {
     setLoading(conflict.noteId);
     try {
       await notes.resolveConflict(conflict.noteId, conflict.remoteEnvelope, conflict.remoteUpdatedAt);
@@ -87,7 +87,7 @@ export function ConflictResolutionModal({ conflicts, onDone }: Props) {
                         variant="primary"
                         label={loading === c.noteId ? 'APPLYING…' : 'USE REMOTE'}
                         loading={loading === c.noteId}
-                        onPress={() => handleKeepRemote(c)}
+                        onPress={() => handleUseRemote(c)}
                         style={styles.actionBtn}
                         testID={`conflict-use-remote-${c.noteId}`}
                       />

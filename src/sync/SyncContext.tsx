@@ -8,16 +8,18 @@ import React, {
 } from 'react';
 import { secretGet, secretSet } from '../crypto/secureSecrets';
 import type { WebDavConfig } from './providers/webdavSync';
+import type { S3Config } from './providers/s3Sync';
 import type { ConflictInfo } from './syncRepository';
 
 const SYNC_CFG_KEY  = 'nj_sync_config';
 const SYNC_META_KEY = 'nj_sync_meta';
 
-export type SyncProviderType = 'none' | 'webdav' | 'file';
+export type SyncProviderType = 'none' | 'webdav' | 'file' | 's3';
 
 export interface SyncConfig {
   provider: SyncProviderType;
   webdav?:  WebDavConfig;
+  s3?:      S3Config;
 }
 
 interface SyncMeta {

@@ -1,7 +1,6 @@
 import { mergeBundle, needsPush, type MergeResult } from '../syncRepository';
 import type { SyncBundle } from '../SyncBundle';
 
-// Mock vaultStorage so loadSalt doesn't hit SecureStore
 jest.mock('../../crypto/vaultStorage', () => ({
   loadSalt: jest.fn().mockResolvedValue(new Uint8Array(16)),
 }));
@@ -10,8 +9,8 @@ jest.mock('../../crypto/secureSecrets', () => ({
   secretSet: jest.fn().mockResolvedValue(undefined),
 }));
 
-function makeDb(existingRows: { id: string; updated_at: number }[] = []) {
-  const rows = [...existingRows];
+function makeDb(existingRows: { id: string; updated_at: number; envelope?: string }[] = []) {
+  const rows = existingRows.map(r => ({ envelope: 'local_env', ...r }));
   return {
     getAllAsync:   jest.fn().mockResolvedValue(rows),
     getFirstAsync: jest.fn(async (_sql: string, params: unknown[]) => {
@@ -47,6 +46,7 @@ describe('mergeBundle', () => {
     const result: MergeResult = await mergeBundle(db as any, bundle);
     expect(result.imported).toBe(1);
     expect(result.skipped).toBe(0);
+    expect(result.conflicts).toHaveLength(0);
     expect(db.runAsync).toHaveBeenCalledWith(
       expect.stringContaining('INSERT'),
       ['n1', 'env1', 100, 50],
@@ -54,13 +54,14 @@ describe('mergeBundle', () => {
   });
 
   it('updates existing note if remote is newer', async () => {
-    const db = makeDb([{ id: 'n1', updated_at: 50 }]);
+    const db = makeDb([{ id: 'n1', updated_at: 50, envelope: 'local_env' }]);
     const bundle: SyncBundle = {
       ...baseBundle,
       notes: [{ id: 'n1', envelope: 'newer', updated_at: 200, created_at: 10 }],
     };
     const result = await mergeBundle(db as any, bundle);
     expect(result.imported).toBe(1);
+    expect(result.conflicts).toHaveLength(0);
     expect(db.runAsync).toHaveBeenCalledWith(
       expect.stringContaining('UPDATE'),
       ['newer', 200, 'n1'],
@@ -68,15 +69,29 @@ describe('mergeBundle', () => {
   });
 
   it('skips note if local is newer or equal', async () => {
-    const db = makeDb([{ id: 'n1', updated_at: 300 }]);
+    const db = makeDb([{ id: 'n1', updated_at: 300, envelope: 'same_env' }]);
     const bundle: SyncBundle = {
       ...baseBundle,
-      notes: [{ id: 'n1', envelope: 'old', updated_at: 100, created_at: 10 }],
+      notes: [{ id: 'n1', envelope: 'same_env', updated_at: 100, created_at: 10 }],
     };
     const result = await mergeBundle(db as any, bundle);
     expect(result.imported).toBe(0);
     expect(result.skipped).toBe(1);
+    expect(result.conflicts).toHaveLength(0);
     expect(db.runAsync).not.toHaveBeenCalled();
+  });
+
+  it('records conflict when local is newer but envelopes differ', async () => {
+    const db = makeDb([{ id: 'n1', updated_at: 300, envelope: 'local_content' }]);
+    const bundle: SyncBundle = {
+      ...baseBundle,
+      notes: [{ id: 'n1', envelope: 'remote_content', updated_at: 100, created_at: 10 }],
+    };
+    const result = await mergeBundle(db as any, bundle);
+    expect(result.skipped).toBe(1);
+    expect(result.conflicts).toHaveLength(1);
+    expect(result.conflicts[0]!.noteId).toBe('n1');
+    expect(result.conflicts[0]!.remoteEnvelope).toBe('remote_content');
   });
 
   it('skips malformed rows', async () => {
@@ -92,6 +107,7 @@ describe('mergeBundle', () => {
     const result = await mergeBundle(db as any, baseBundle);
     expect(result.imported).toBe(0);
     expect(result.skipped).toBe(0);
+    expect(result.conflicts).toHaveLength(0);
   });
 });
 

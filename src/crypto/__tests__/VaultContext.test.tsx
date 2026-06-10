@@ -7,6 +7,13 @@ import * as biometric from '../biometricUnlock';
 
 type UnlockResult = Result<void>;
 
+jest.mock('../biometricUnlock', () => ({
+  isBiometricsAvailable: jest.fn().mockResolvedValue(false),
+  storeBiometricKey:     jest.fn().mockResolvedValue(undefined),
+  retrieveBiometricKey:  jest.fn().mockResolvedValue(null),
+  deleteBiometricKey:    jest.fn().mockResolvedValue(undefined),
+}));
+
 jest.mock('expo-secure-store', () => {
   const store: Record<string, string> = {};
   return {

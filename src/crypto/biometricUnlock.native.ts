@@ -13,7 +13,8 @@ export async function isBiometricsAvailable(): Promise<boolean> {
 export async function storeBiometricKey(key: Uint8Array): Promise<void> {
   await SecureStore.setItemAsync(STORE_KEY, toBase64url(key), {
     requireAuthentication: true,
-    authenticationPrompt: 'Confirm identity to enable biometric unlock',
+    authenticationPrompt:  'Confirm identity to enable biometric unlock',
+    keychainAccessible:    SecureStore.WHEN_PASSCODE_SET_THIS_DEVICE_ONLY,
   });
 }
 
@@ -21,19 +22,14 @@ export async function retrieveBiometricKey(): Promise<Uint8Array | null> {
   try {
     const b64 = await SecureStore.getItemAsync(STORE_KEY, {
       requireAuthentication: true,
-      authenticationPrompt: 'Unlock NERD_JOURNAL_',
+      authenticationPrompt:  'Unlock NERD_JOURNAL_',
     });
     return b64 ? fromBase64url(b64) : null;
   } catch {
-    // User cancelled, biometrics changed, or key invalidated
     return null;
   }
 }
 
 export async function deleteBiometricKey(): Promise<void> {
-  try {
-    await SecureStore.deleteItemAsync(STORE_KEY);
-  } catch {
-    // key may not exist
-  }
+  try { await SecureStore.deleteItemAsync(STORE_KEY); } catch {}
 }

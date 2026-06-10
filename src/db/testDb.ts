@@ -53,7 +53,6 @@ export function createTestDb(): Database {
       _sql: string,
       params?: (string | number | null)[],
     ): Promise<T | null> {
-      // SELECT * FROM notes WHERE id = ?
       const id = params?.[0] as string | undefined;
       return (id ? (notes.get(id) ?? null) : null) as unknown as T | null;
     },

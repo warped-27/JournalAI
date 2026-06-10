@@ -11,8 +11,11 @@ import { testClaudeConnection, CLAUDE_MODELS, DEFAULT_CLAUDE_MODEL } from '../sr
 import { useSync } from '../src/sync/SyncContext';
 import { useNotes } from '../src/notes/NotesContext';
 import { webdavPush, webdavPull, testWebDavConnection } from '../src/sync/providers/webdavSync';
+import { s3Push, s3Pull, testS3Connection, type S3Config } from '../src/sync/providers/s3Sync';
 import { exportToFile, importFromFile } from '../src/sync/providers/fileSync';
 import { classifySyncError } from '../src/sync/syncError';
+import { bundleToMarkdown } from '../src/export/markdownExport';
+import { saveTextFile } from '../src/platform/fileSystem';
 import { ConflictResolutionModal } from '../src/components/ConflictResolutionModal';
 import { Box } from '../src/design/components/Box';
 import { T } from '../src/design/components/T';
@@ -76,6 +79,20 @@ export default function SettingsScreen() {
   const [wdTesting,  setWdTesting]  = useState(false);
   const [wdSyncing,  setWdSyncing]  = useState(false);
   const [syncStatus, setSyncStatus] = useState('');
+
+  // S3 form state (seeded from stored config)
+  const s3Cfg = sync.config.provider === 's3' ? sync.config.s3 : undefined;
+  const [s3Endpoint,  setS3Endpoint]  = useState(s3Cfg?.endpoint  ?? '');
+  const [s3Region,    setS3Region]    = useState(s3Cfg?.region     ?? 'auto');
+  const [s3Bucket,    setS3Bucket]    = useState(s3Cfg?.bucket     ?? '');
+  const [s3AccessKey, setS3AccessKey] = useState(s3Cfg?.accessKey  ?? '');
+  const [s3SecretKey, setS3SecretKey] = useState(s3Cfg?.secretKey  ?? '');
+  const [s3Testing,   setS3Testing]   = useState(false);
+  const [s3Syncing,   setS3Syncing]   = useState(false);
+
+  // Biometric status
+  const [bioLoading, setBioLoading] = useState(false);
+  const [bioStatus,  setBioStatus]  = useState('');
 
   async function handleSave() {
     await ai.setApiKey(key);
@@ -227,6 +244,60 @@ export default function SettingsScreen() {
     setSyncStatus('WebDAV disconnected');
   }
 
+  // ─── S3 handlers ──────────────────────────────────────────────────────────
+
+  async function handleS3Save() {
+    const endpoint = s3Endpoint.trim();
+    const bucket   = s3Bucket.trim();
+    if (!endpoint || !bucket) return;
+    setS3Testing(true);
+    setSyncStatus('');
+    const cfg: S3Config = {
+      endpoint, region: s3Region.trim() || 'auto',
+      bucket, accessKey: s3AccessKey.trim(), secretKey: s3SecretKey,
+    };
+    try {
+      await testS3Connection(cfg);
+      await sync.setConfig({ provider: 's3', s3: cfg });
+      setSyncStatus('S3 configured ✓');
+    } catch (e) {
+      setSyncStatus(classifySyncError(e));
+    } finally {
+      setS3Testing(false);
+    }
+  }
+
+  async function handleS3SyncNow() {
+    if (sync.config.provider !== 's3' || !sync.config.s3) return;
+    setS3Syncing(true);
+    setSyncStatus('');
+    try {
+      const cfg    = sync.config.s3;
+      const result = await s3Pull(cfg);
+      if (result) {
+        const mergeResult = await notes.importBundle(result.bundle);
+        if (mergeResult.conflicts.length > 0) sync.setPendingConflicts(mergeResult.conflicts);
+      }
+      const merged = await notes.exportBundle();
+      await s3Push(cfg, merged);
+      sync.setLastSyncAt(Date.now());
+      setSyncStatus('S3 sync complete ✓');
+    } catch (e) {
+      const msg = classifySyncError(e);
+      setSyncStatus(msg);
+      sync.setLastError(msg);
+    } finally {
+      setS3Syncing(false);
+    }
+  }
+
+  async function handleDisconnectS3() {
+    await sync.setConfig({ provider: 'none' });
+    setSyncStatus('S3 disconnected');
+  }
+
+  // ─── File export/import ────────────────────────────────────────────────────
+
   async function handleExportFile() {
     setSyncStatus('');
     try {
@@ -234,7 +305,18 @@ export default function SettingsScreen() {
       await exportToFile(bundle);
       setSyncStatus('Export complete ✓');
     } catch (e) {
-      setSyncStatus(e instanceof Error ? e.message : 'Export failed');
+      setSyncStatus(classifySyncError(e));
+    }
+  }
+
+  async function handleExportMarkdown() {
+    setSyncStatus('');
+    try {
+      const md = bundleToMarkdown(notes.notes);
+      await saveTextFile(md, 'nerd_journal_export.md');
+      setSyncStatus('Markdown export complete ✓');
+    } catch (e) {
+      setSyncStatus(classifySyncError(e));
     }
   }
 
@@ -251,6 +333,23 @@ export default function SettingsScreen() {
     } catch (e) {
       setSyncStatus(classifySyncError(e));
     }
+  }
+
+  // ─── Biometric ─────────────────────────────────────────────────────────────
+
+  async function handleBiometricEnroll() {
+    setBioLoading(true);
+    setBioStatus('');
+    const result = await vault.enableBiometrics();
+    setBioLoading(false);
+    setBioStatus(result.ok ? 'Biometric unlock enabled ✓' : result.error);
+  }
+
+  async function handleBiometricRevoke() {
+    setBioLoading(true);
+    await vault.disableBiometrics();
+    setBioLoading(false);
+    setBioStatus('Biometric unlock disabled');
   }
 
   return (
@@ -827,38 +926,40 @@ export default function SettingsScreen() {
         {vault.biometricAvailable && (
           <>
             <T variant="heading" style={[styles.section, styles.syncHeading]}>SECURITY</T>
-
             <T variant="label" style={styles.label}>BIOMETRIC UNLOCK</T>
             <T variant="muted" style={styles.hint}>
               {vault.biometricEnabled
-                ? 'Face ID / Fingerprint unlock is active. The vault key is protected by your device secure enclave.'
-                : 'Enable Face ID or Fingerprint unlock. Your vault key is stored in the device secure enclave — it never leaves the device.'}
+                ? 'Face ID / Fingerprint unlock is active. The vault key is stored in your device secure enclave.'
+                : 'Enable Face ID or Fingerprint unlock. The vault key will be stored in your device secure enclave — it never leaves the device.'}
             </T>
-
             {vault.biometricEnabled ? (
               <Btn
-                label="DISABLE BIOMETRICS"
+                label={bioLoading ? 'DISABLING…' : 'DISABLE BIOMETRICS'}
                 variant="danger"
-                onPress={vault.disableBiometrics}
+                onPress={handleBiometricRevoke}
+                loading={bioLoading}
                 style={[styles.btn, styles.fullBtn]}
                 testID="settings-biometric-disable"
               />
             ) : (
               <Btn
-                label="ENABLE BIOMETRICS"
+                label={bioLoading ? 'ENABLING…' : 'ENABLE BIOMETRICS'}
                 variant="primary"
-                onPress={vault.enableBiometrics}
+                onPress={handleBiometricEnroll}
+                loading={bioLoading}
+                disabled={!vault.isUnlocked}
                 style={[styles.btn, styles.fullBtn]}
                 testID="settings-biometric-enable"
-                disabled={!vault.isUnlocked}
               />
             )}
-
             {!vault.isUnlocked && !vault.biometricEnabled && (
-              <T variant="muted" style={styles.hint}>
-                Unlock the vault first to enable biometrics.
-              </T>
+              <T variant="muted" style={styles.hint}>Unlock the vault first to enable biometrics.</T>
             )}
+            {bioStatus ? (
+              <T variant={bioStatus.includes('✓') ? 'label' : 'error'} style={styles.status}>
+                {bioStatus}
+              </T>
+            ) : null}
           </>
         )}
 
@@ -946,15 +1047,103 @@ export default function SettingsScreen() {
           </>
         )}
 
+        {/* S3 form */}
+        <T variant="label" style={[styles.label, styles.modelTitle]}>S3-COMPATIBLE (AWS / R2 / B2 / MINIO)</T>
+        <T variant="muted" style={styles.hint}>
+          Works with AWS S3, Cloudflare R2, Backblaze B2, and any S3-compatible storage.
+          Your vault is encrypted before upload — credentials and data are never exposed.
+        </T>
+        <Input
+          value={s3Endpoint}
+          onChangeText={setS3Endpoint}
+          placeholder="https://s3.amazonaws.com"
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="url"
+          style={styles.input}
+          testID="sync-s3-endpoint"
+        />
+        <Input
+          value={s3Region}
+          onChangeText={setS3Region}
+          placeholder="us-east-1 (or 'auto' for R2)"
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={styles.input}
+          testID="sync-s3-region"
+        />
+        <Input
+          value={s3Bucket}
+          onChangeText={setS3Bucket}
+          placeholder="my-journal-bucket"
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={styles.input}
+          testID="sync-s3-bucket"
+        />
+        <Input
+          value={s3AccessKey}
+          onChangeText={setS3AccessKey}
+          placeholder="access key ID"
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={styles.input}
+          testID="sync-s3-access-key"
+        />
+        <Input
+          value={s3SecretKey}
+          onChangeText={setS3SecretKey}
+          placeholder="secret access key"
+          secureTextEntry
+          style={styles.input}
+          testID="sync-s3-secret-key"
+        />
+        <View style={styles.actions}>
+          <Btn
+            label={s3Testing ? 'TESTING…' : 'TEST & SAVE'}
+            variant="primary"
+            onPress={handleS3Save}
+            loading={s3Testing}
+            style={styles.btn}
+            testID="sync-s3-save"
+          />
+          {sync.config.provider === 's3' && (
+            <Btn
+              label={s3Syncing ? 'SYNCING…' : 'SYNC NOW'}
+              variant="ghost"
+              onPress={handleS3SyncNow}
+              loading={s3Syncing}
+              style={styles.btn}
+              testID="sync-s3-now"
+            />
+          )}
+        </View>
+        {sync.config.provider === 's3' && (
+          <>
+            <T variant="muted" style={styles.status}>
+              {sync.lastSyncAt
+                ? `Last sync: ${new Date(sync.lastSyncAt).toLocaleString()}`
+                : 'Never synced on this session'}
+            </T>
+            <Btn
+              label="DISCONNECT S3"
+              variant="danger"
+              onPress={handleDisconnectS3}
+              style={[styles.btn, styles.disconnectBtn]}
+              testID="sync-s3-disconnect"
+            />
+          </>
+        )}
+
         {/* File export/import */}
         <T variant="label" style={[styles.label, styles.modelTitle]}>BACKUP FILE</T>
         <T variant="muted" style={styles.hint}>
           Export an encrypted vault bundle (.njvault) to file, or import one to
-          restore notes from another device.
+          restore notes from another device. Export as Markdown for readable backups.
         </T>
         <View style={styles.actions}>
           <Btn
-            label="EXPORT FILE"
+            label="EXPORT .NJVAULT"
             variant="ghost"
             onPress={handleExportFile}
             style={styles.btn}
@@ -968,6 +1157,13 @@ export default function SettingsScreen() {
             testID="sync-import-file"
           />
         </View>
+        <Btn
+          label="EXPORT AS MARKDOWN"
+          variant="ghost"
+          onPress={handleExportMarkdown}
+          style={[styles.btn, styles.fullBtn]}
+          testID="sync-export-markdown"
+        />
 
         {syncStatus ? (
           <T

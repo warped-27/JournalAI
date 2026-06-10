@@ -51,14 +51,11 @@ export default function HomeScreen() {
           <T variant="caption" style={styles.noteCount}>
             {notes.length} {notes.length === 1 ? 'entry' : 'entries'}
           </T>
-          <Pressable
-            onPress={handleAsk}
-            style={styles.askBtn}
-            testID="ask-btn"
-            accessibilityLabel="Ask your notes"
-          >
-            <T variant="kicker">ASK</T>
-          </Pressable>
+          <Link href="/brain" asChild>
+            <Pressable testID="brain-btn" accessibilityLabel="Second Brain" style={styles.settingsBtn}>
+              <T variant="kicker" style={styles.brainBtn}>BRAIN</T>
+            </Pressable>
+          </Link>
           <Link href="/settings" asChild>
             <Pressable testID="settings-btn" accessibilityLabel="Settings" style={styles.settingsBtn}>
               <T variant="kicker">CFG</T>
@@ -172,6 +169,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical:   4,
   },
+  brainBtn: { color: Colors.green },
 
   rule: {
     height:          1,

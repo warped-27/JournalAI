@@ -24,9 +24,10 @@ async function tauriReadFile(): Promise<string | null> {
 async function tauriWriteFile(content: string, defaultName: string): Promise<void> {
   const { save }          = await import('@tauri-apps/plugin-dialog');
   const { writeTextFile } = await import('@tauri-apps/plugin-fs');
+  const ext      = defaultName.split('.').pop() ?? 'txt';
   const selected = await save({
     defaultPath: defaultName,
-    filters: [{ name: 'NERD_JOURNAL_ Bundle', extensions: ['njvault'] }],
+    filters: [{ name: 'Export', extensions: [ext] }],
   });
   if (!selected) return;
   await writeTextFile(selected, content);
@@ -43,13 +44,19 @@ async function nativeReadFile(): Promise<string | null> {
   if (result.canceled) return null;
   const uri = result.assets?.[0]?.uri;
   if (!uri) return null;
-  const { readAsStringAsync, EncodingType } = await import('expo-file-system');
+  const { readAsStringAsync, EncodingType } = await import('expo-file-system/legacy');
   return readAsStringAsync(uri, { encoding: EncodingType.UTF8 });
 }
 
-// Native export: not yet implemented (requires expo-sharing)
-async function nativeWriteFile(_content: string, _name: string): Promise<void> {
-  throw new Error('File export on mobile requires expo-sharing — use WebDAV sync instead.');
+async function nativeWriteFile(content: string, name: string): Promise<void> {
+  const FileSystem = await import('expo-file-system/legacy');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const uri = ((FileSystem as any).cacheDirectory ?? '') + name;
+  await FileSystem.writeAsStringAsync(uri, content, { encoding: FileSystem.EncodingType.UTF8 });
+  const Sharing = await import('expo-sharing');
+  if (await Sharing.isAvailableAsync()) {
+    await Sharing.shareAsync(uri, { dialogTitle: 'Export' });
+  }
 }
 
 // ─── Browser (legacy / dev) ──────────────────────────────────────────────────
