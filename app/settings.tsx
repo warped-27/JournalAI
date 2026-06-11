@@ -443,11 +443,12 @@ export default function SettingsScreen() {
           in cascade: on-device → Ollama → MLX. Your notes never leave the device.
         </T>
 
-        <T variant="label" style={styles.label}>OLLAMA (LAN / TAILSCALE)</T>
+        <T variant="label" style={styles.label}>OLLAMA / JAN / LM STUDIO</T>
         <T variant="muted" style={styles.hint}>
-          Install Ollama, pull a model (e.g. llama3.2:3b), then enable here.
+          Any OpenAI-compatible local runtime works here:{'\n'}
+          Ollama → localhost:11434 · Jan → localhost:1337 · LM Studio → localhost:1234
           {isNativePlatform()
-            ? ' On mobile, use your computer\'s LAN IP (e.g. http://192.168.1.x:11434) — localhost refers to the phone itself.'
+            ? '\nOn mobile, replace localhost with your computer\'s LAN IP (e.g. http://192.168.1.x:PORT).'
             : ''}
         </T>
         <Pressable
