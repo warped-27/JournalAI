@@ -122,35 +122,27 @@ All sync methods:
 
 ## Platform Support
 
-| Platform | How to run | Native-only features |
-|---|---|---|
-| **Web (browser)** | `npm run web` | — |
-| **Desktop (Tauri)** | `npm run dev:tauri` | OS keychain · file pickers · tray · keyboard shortcuts · LAN sync server |
-| **iOS** | EAS build or `npx expo run:ios` | llama.rn · Whisper · biometrics · camera · LAN sync QR scanner |
-| **Android** | EAS build or `npx expo run:android` | llama.rn · Whisper · biometrics · camera · LAN sync QR scanner |
+| Platform | Status | How to run | Notes |
+|---|---|---|---|
+| **Desktop (Tauri)** | ✅ Full | `npm run dev:tauri` | OS keychain · file pickers · tray · keyboard shortcuts · LAN sync server |
+| **iOS** | ✅ Full | EAS build or `npx expo run:ios` | llama.rn · Whisper · biometrics · camera · LAN sync QR scanner |
+| **Android** | ✅ Full | EAS build or `npx expo run:android` | llama.rn · Whisper · biometrics · camera · LAN sync QR scanner |
+| **Web (browser)** | ❌ Not supported | `npm run web` | See note below |
 
-> **Platform notes:**
+> **Web browser — not supported for end users.**
+> The vault requires an OS keychain (Tauri) or device secure enclave (iOS / Android) to store the KDF salt and verifier. Browsers have neither: writing these keys via `webSet()` throws immediately with *"Vault storage requires a secure keychain"*. The web build exists for UI development only — the app is unusable without an unlocked vault.
+
+> **Other platform notes:**
 > - Ollama on mobile: `localhost` refers to the phone itself. Use the computer's LAN IP (e.g. `http://192.168.1.x:11434`) or Tailscale.
 > - MLX: macOS Apple Silicon only. Not available on iOS, Android, or Intel Macs.
-> - Whisper STT: iOS and Android native builds only. Desktop/web show a clear unavailability notice.
+> - Whisper STT: iOS and Android native builds only.
 > - LAN sync server: desktop (Tauri) only. Mobile acts as client and scans the QR code. Both devices must be on the same Wi-Fi network.
 
 ---
 
 ## Getting Started
 
-### Web / Browser (quickest)
-
-```bash
-git clone https://github.com/warped-27/nerd_journal_
-cd nerd_journal_
-npm install
-npm run web
-```
-
-No environment variables required. API keys (Gemini, Claude, OpenAI, etc.) are entered in the app's Settings screen and stored in the device keychain.
-
-### Desktop (Tauri)
+### Desktop (Tauri) — recommended starting point
 
 Requires [Rust](https://rustup.rs) and Tauri system dependencies for your OS.
 
@@ -253,7 +245,7 @@ plugins/              Expo config plugins (applied at EAS / prebuild time)
 ## Scripts
 
 ```bash
-npm run web           # Expo web dev server
+npm run web           # Expo web dev server (UI development only — vault unusable in browser)
 npm run dev:tauri     # Tauri desktop dev mode
 npm run build:tauri   # Tauri production build
 npm test              # Jest (371 tests, 50 suites)
