@@ -65,13 +65,19 @@ async fn handle_put(
     if !verify_pin(&headers, &state.pin) {
         return StatusCode::UNAUTHORIZED;
     }
-    match String::from_utf8(body.to_vec()) {
-        Ok(s) if !s.is_empty() => {
-            *state.received.lock().unwrap() = Some(s);
-            StatusCode::OK
-        }
-        _ => StatusCode::BAD_REQUEST,
+    let Ok(s) = String::from_utf8(body.into()) else {
+        return StatusCode::BAD_REQUEST;
+    };
+    if s.is_empty() {
+        return StatusCode::BAD_REQUEST;
     }
+    let mut received = state.received.lock().unwrap();
+    if received.is_some() {
+        // A bundle was already received — reject concurrent PUTs.
+        return StatusCode::CONFLICT;
+    }
+    *received = Some(s);
+    StatusCode::OK
 }
 
 // ── Tauri commands ────────────────────────────────────────────────────────────

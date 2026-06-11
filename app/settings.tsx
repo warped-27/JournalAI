@@ -102,8 +102,9 @@ export default function SettingsScreen() {
   const [lanCountdown,   setLanCountdown]   = useState(0);
   const [lanStatus,      setLanStatus]      = useState('');
   const [lanScanning,    setLanScanning]    = useState(false);
-  const lanPollRef  = useRef<ReturnType<typeof setInterval> | null>(null);
-  const lanTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lanPollRef    = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lanTimerRef   = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lanPollingRef = useRef(false);
   const [lanQrUri,       setLanQrUri]       = useState<string | null>(null);
 
   // Biometric status
@@ -358,11 +359,18 @@ export default function SettingsScreen() {
     if (lanTimerRef.current) clearInterval(lanTimerRef.current);
     lanPollRef.current  = null;
     lanTimerRef.current = null;
+    lanPollingRef.current = false;
     void stopLanServer().catch(() => {});
     setLanInfo(null);
     setLanQrUri(null);
     setLanCountdown(0);
   }, []);
+
+  // Stop the server when the 5-min countdown expires.
+  // Kept outside the setInterval updater to satisfy React's pure-updater rule.
+  useEffect(() => {
+    if (lanCountdown === 0 && lanInfo !== null) stopLan();
+  }, [lanCountdown, lanInfo, stopLan]);
 
   async function handleLanStart() {
     setLanStatus('');
@@ -382,16 +390,15 @@ export default function SettingsScreen() {
       });
       setLanQrUri(uri);
 
-      // Countdown timer
+      // Countdown timer — pure decrement only; stopLan fires via useEffect when it hits 0.
       lanTimerRef.current = setInterval(() => {
-        setLanCountdown((t) => {
-          if (t <= 1) { stopLan(); return 0; }
-          return t - 1;
-        });
+        setLanCountdown((t) => Math.max(0, t - 1));
       }, 1000);
 
-      // Poll for result from mobile
+      // Poll for result from mobile — guard prevents overlapping async executions.
       lanPollRef.current = setInterval(async () => {
+        if (lanPollingRef.current) return;
+        lanPollingRef.current = true;
         try {
           const result = await getLanSyncResult();
           if (result) {
@@ -405,7 +412,8 @@ export default function SettingsScreen() {
             sync.setLastSyncAt(Date.now());
             setLanStatus(`LAN sync complete ✓ — ${mergeResult.imported} note(s) updated`);
           }
-        } catch { /* ignore poll errors */ }
+        } catch { /* ignore transient poll errors */ }
+        finally { lanPollingRef.current = false; }
       }, 1000);
     } catch (e) {
       setLanStatus(e instanceof Error ? e.message : 'LAN sync failed');
@@ -413,7 +421,6 @@ export default function SettingsScreen() {
   }
 
   async function handleLanScan(url: string) {
-    setLanScanning(false);
     setLanStatus('Connecting…');
     try {
       const target = parseLanUrl(url);
@@ -427,6 +434,8 @@ export default function SettingsScreen() {
       setLanStatus(`LAN sync complete ✓ — ${result.imported} note(s) updated`);
     } catch (e) {
       setLanStatus(e instanceof Error ? e.message : 'LAN sync failed');
+    } finally {
+      setLanScanning(false);
     }
   }
 

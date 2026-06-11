@@ -16,9 +16,10 @@ const { withAndroidManifest } = require('@expo/config-plugins');
 function withAndroidLanNetwork(config) {
   return withAndroidManifest(config, (conf) => {
     const app = conf.modResults.manifest.application?.[0];
-    if (app) {
-      app.$['android:usesCleartextTraffic'] = 'true';
+    if (!app) {
+      throw new Error('[withAndroidLanNetwork] No <application> element in AndroidManifest — cannot set cleartext flag.');
     }
+    app.$['android:usesCleartextTraffic'] = 'true';
     return conf;
   });
 }

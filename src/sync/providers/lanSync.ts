@@ -19,12 +19,21 @@ export interface LanSyncTarget {
 
 // ── URL helpers ───────────────────────────────────────────────────────────────
 
+// Reject any host that is not a RFC-1918 / loopback address to prevent SSRF.
+const PRIVATE_HOST_RE =
+  /^(10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|127\.\d{1,3}\.\d{1,3}\.\d{1,3}|localhost|::1)$/;
+
 export function parseLanUrl(url: string): LanSyncTarget {
   const normalized = url.replace(/^njlan:\/\//, 'http://');
   const u = new URL(normalized);
   const pin = u.searchParams.get('pin') ?? '';
   if (!pin) throw new Error('LAN sync URL missing PIN');
-  return { host: u.hostname, port: parseInt(u.port, 10), pin };
+  if (!PRIVATE_HOST_RE.test(u.hostname))
+    throw new Error('LAN sync URL must use a local network address');
+  const port = parseInt(u.port, 10);
+  if (!Number.isInteger(port) || port < 1 || port > 65535)
+    throw new Error('LAN sync URL has invalid port');
+  return { host: u.hostname, port, pin };
 }
 
 // ── Desktop (Tauri) — server control via IPC ──────────────────────────────────
