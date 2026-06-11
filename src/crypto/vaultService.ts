@@ -23,6 +23,7 @@ export async function isVaultInitialised(): Promise<boolean> {
 export async function createVault(password: string): Promise<Uint8Array> {
   const salt = getRandomBytes(KDF_SALT_BYTES);
   const key  = await deriveKey(password, salt, KDF_PARAMS);
+
   try {
     const envelope    = encrypt(key, toUtf8(VERIFIER_PLAINTEXT));
     const verifierB64 = toBase64url(envelope);

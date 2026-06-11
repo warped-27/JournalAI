@@ -46,11 +46,10 @@ const SESSION_STORAGE_KEYS = new Set([
   'nj_ai_consent',
   'nj_ai_autoenrich',
   'nj_gemini_model',
+  'nj_sync_config',         // WebDAV / S3 credentials — must not persist in localStorage
+  'nj_sync_meta',
   'nj_gemini_consent',      // legacy — kept for migration reads
   'nj_gemini_autoenrich',   // legacy — kept for migration reads
-  // Sync credentials must not survive browser restarts
-  'nj_sync_config',
-  'nj_sync_meta',
 ]);
 
 const _sessionStorage: Storage | null = (() => {

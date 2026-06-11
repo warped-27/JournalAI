@@ -29,13 +29,15 @@ export function buildAskPrompt(question: string, sources: Note[]): string {
   let context = '';
   for (let i = 0; i < sources.length; i++) {
     const n         = sources[i]!;
-    const header    = `[${i + 1}] ${n.title || '(untitled)'}\n`;
+    const title     = sanitizeInput(n.title || '(untitled)');
+    const content   = sanitizeInput(n.content);
+    const header    = `[${i + 1}] ${title}\n`;
     const remaining = MAX_CONTEXT_CHARS - context.length;
     if (remaining < header.length + 10) break;
     const bodyBudget = remaining - header.length - 2; // 2 for trailing \n\n
-    const body       = sanitizeInput(n.content).slice(0, bodyBudget);
+    const body       = content.slice(0, bodyBudget);
     context += `${header}${body}\n\n`;
-    if (n.content.length > bodyBudget) break; // budget exhausted
+    if (content.length > bodyBudget) break; // budget exhausted
   }
 
   return (

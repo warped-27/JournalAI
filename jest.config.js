@@ -14,7 +14,7 @@ module.exports = {
     '^@noble/ciphers/([^.]+)$':   '<rootDir>/node_modules/@noble/ciphers/$1.js',
     // @testing-library/react-native resolves react-test-renderer as "test-renderer"
     '^test-renderer$': '<rootDir>/node_modules/react-test-renderer',
-    // whisper.rn is a native-only package; stub it out for Jest
+    // whisper.rn is a native-only package not installed in CI — use the manual mock
     '^whisper\\.rn$': '<rootDir>/__mocks__/whisper.rn.js',
     // expo-file-system/legacy sub-path isn't in the package's exports map
     '^expo-file-system/legacy$': '<rootDir>/node_modules/expo-file-system/src/index.ts',

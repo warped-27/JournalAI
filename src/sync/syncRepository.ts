@@ -136,9 +136,10 @@ export async function applyRemoteVersion(
   remoteEnvelope: string,
   remoteUpdatedAt: number,
 ): Promise<void> {
+  if (!NOTE_ID_RE.test(noteId)) throw new Error('applyRemoteVersion: invalid note ID');
   // Re-validate the envelope before committing — it must be a non-empty base64url string
   // within size bounds. Full AEAD verification happens at read time via NotesRepository.
-  if (!remoteEnvelope || remoteEnvelope.length > 10_000_000 || !BASE64URL_RE.test(remoteEnvelope)) {
+  if (!BASE64URL_RE.test(remoteEnvelope) || remoteEnvelope.length > 10_000_000) {
     throw new Error('applyRemoteVersion: invalid envelope');
   }
   await db.withTransactionAsync(async () => {

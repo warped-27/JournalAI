@@ -89,6 +89,8 @@ export default function SettingsScreen() {
   const [s3SecretKey, setS3SecretKey] = useState(s3Cfg?.secretKey  ?? '');
   const [s3Testing,   setS3Testing]   = useState(false);
   const [s3Syncing,   setS3Syncing]   = useState(false);
+  // Collapsed by default unless S3 is already the active provider
+  const [s3Expanded,  setS3Expanded]  = useState(sync.config.provider === 's3');
 
   // Biometric status
   const [bioLoading, setBioLoading] = useState(false);
@@ -1047,91 +1049,110 @@ export default function SettingsScreen() {
           </>
         )}
 
-        {/* S3 form */}
-        <T variant="label" style={[styles.label, styles.modelTitle]}>S3-COMPATIBLE (AWS / R2 / B2 / MINIO)</T>
-        <T variant="muted" style={styles.hint}>
-          Works with AWS S3, Cloudflare R2, Backblaze B2, and any S3-compatible storage.
-          Your vault is encrypted before upload — credentials and data are never exposed.
-        </T>
-        <Input
-          value={s3Endpoint}
-          onChangeText={setS3Endpoint}
-          placeholder="https://s3.amazonaws.com"
-          autoCapitalize="none"
-          autoCorrect={false}
-          keyboardType="url"
-          style={styles.input}
-          testID="sync-s3-endpoint"
-        />
-        <Input
-          value={s3Region}
-          onChangeText={setS3Region}
-          placeholder="us-east-1 (or 'auto' for R2)"
-          autoCapitalize="none"
-          autoCorrect={false}
-          style={styles.input}
-          testID="sync-s3-region"
-        />
-        <Input
-          value={s3Bucket}
-          onChangeText={setS3Bucket}
-          placeholder="my-journal-bucket"
-          autoCapitalize="none"
-          autoCorrect={false}
-          style={styles.input}
-          testID="sync-s3-bucket"
-        />
-        <Input
-          value={s3AccessKey}
-          onChangeText={setS3AccessKey}
-          placeholder="access key ID"
-          autoCapitalize="none"
-          autoCorrect={false}
-          style={styles.input}
-          testID="sync-s3-access-key"
-        />
-        <Input
-          value={s3SecretKey}
-          onChangeText={setS3SecretKey}
-          placeholder="secret access key"
-          secureTextEntry
-          style={styles.input}
-          testID="sync-s3-secret-key"
-        />
-        <View style={styles.actions}>
-          <Btn
-            label={s3Testing ? 'TESTING…' : 'TEST & SAVE'}
-            variant="primary"
-            onPress={handleS3Save}
-            loading={s3Testing}
-            style={styles.btn}
-            testID="sync-s3-save"
-          />
-          {sync.config.provider === 's3' && (
-            <Btn
-              label={s3Syncing ? 'SYNCING…' : 'SYNC NOW'}
-              variant="ghost"
-              onPress={handleS3SyncNow}
-              loading={s3Syncing}
-              style={styles.btn}
-              testID="sync-s3-now"
-            />
-          )}
-        </View>
-        {sync.config.provider === 's3' && (
+        {/* S3 form — collapsed by default (advanced option) */}
+        <Pressable
+          style={styles.advancedToggle}
+          onPress={() => setS3Expanded((v) => !v)}
+          testID="sync-s3-expand"
+          accessibilityRole="button"
+          accessibilityState={{ expanded: s3Expanded }}
+        >
+          <T variant="label" style={styles.advancedToggleLabel}>
+            S3-COMPATIBLE (AWS / R2 / B2 / MINIO)
+          </T>
+          <T variant="kicker" style={styles.advancedBadge}>
+            {s3Expanded ? '▲ ADVANCED' : '▼ ADVANCED'}
+          </T>
+        </Pressable>
+
+        {s3Expanded && (
           <>
-            <T variant="muted" style={styles.status}>
-              {sync.lastSyncAt
-                ? `Last sync: ${new Date(sync.lastSyncAt).toLocaleString()}`
-                : 'Never synced on this session'}
+            <T variant="muted" style={styles.hint}>
+              Works with AWS S3, Cloudflare R2, Backblaze B2, and any S3-compatible storage.
+              Requires a bucket, endpoint URL, region, and access credentials from your
+              cloud provider. Your vault is encrypted before upload.
             </T>
-            <Btn
-              label="DISCONNECT S3"
-              variant="danger"
-              onPress={handleDisconnectS3}
-              style={[styles.btn, styles.disconnectBtn]}
-              testID="sync-s3-disconnect"
+            <Input
+              value={s3Endpoint}
+              onChangeText={setS3Endpoint}
+              placeholder="https://s3.amazonaws.com"
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+              style={styles.input}
+              testID="sync-s3-endpoint"
             />
+            <Input
+              value={s3Region}
+              onChangeText={setS3Region}
+              placeholder="us-east-1 (or 'auto' for R2)"
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.input}
+              testID="sync-s3-region"
+            />
+            <Input
+              value={s3Bucket}
+              onChangeText={setS3Bucket}
+              placeholder="my-journal-bucket"
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.input}
+              testID="sync-s3-bucket"
+            />
+            <Input
+              value={s3AccessKey}
+              onChangeText={setS3AccessKey}
+              placeholder="access key ID"
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.input}
+              testID="sync-s3-access-key"
+            />
+            <Input
+              value={s3SecretKey}
+              onChangeText={setS3SecretKey}
+              placeholder="secret access key"
+              secureTextEntry
+              style={styles.input}
+              testID="sync-s3-secret-key"
+            />
+            <View style={styles.actions}>
+              <Btn
+                label={s3Testing ? 'TESTING…' : 'TEST & SAVE'}
+                variant="primary"
+                onPress={handleS3Save}
+                loading={s3Testing}
+                style={styles.btn}
+                testID="sync-s3-save"
+              />
+              {sync.config.provider === 's3' && (
+                <Btn
+                  label={s3Syncing ? 'SYNCING…' : 'SYNC NOW'}
+                  variant="ghost"
+                  onPress={handleS3SyncNow}
+                  loading={s3Syncing}
+                  style={styles.btn}
+                  testID="sync-s3-now"
+                />
+              )}
+            </View>
+            {sync.config.provider === 's3' && (
+              <>
+                <T variant="muted" style={styles.status}>
+                  {sync.lastSyncAt
+                    ? `Last sync: ${new Date(sync.lastSyncAt).toLocaleString()}`
+                    : 'Never synced on this session'}
+                </T>
+                <Btn
+                  label="DISCONNECT S3"
+                  variant="danger"
+                  onPress={handleDisconnectS3}
+                  style={[styles.btn, styles.disconnectBtn]}
+                  testID="sync-s3-disconnect"
+                />
+              </>
+            )}
           </>
         )}
 
@@ -1256,4 +1277,17 @@ const styles = StyleSheet.create({
   },
   presetChipText:       { color: Colors.textMuted },
   presetChipTextActive: { color: Colors.green },
+  advancedToggle: {
+    flexDirection:     'row',
+    alignItems:        'center',
+    justifyContent:    'space-between',
+    paddingVertical:   Spacing.sm,
+    paddingHorizontal: Spacing.xs,
+    borderWidth:       1,
+    borderColor:       Colors.border,
+    marginTop:         Spacing.lg,
+    marginBottom:      Spacing.xs,
+  },
+  advancedToggleLabel: { flex: 1 },
+  advancedBadge:       { color: Colors.textMuted, marginLeft: Spacing.sm },
 });
