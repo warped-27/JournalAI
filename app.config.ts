@@ -91,6 +91,7 @@ const config: ExpoConfig = {
         android: { newArchEnabled: true },
       },
     ],
+    './plugins/withAndroidLanNetwork',
   ],
 
   experiments: {
