@@ -40,5 +40,8 @@ yarn-error.*
 /ios
 /android
 
+# Rust build artifacts
+src-tauri/target/
+
 # Claude Code worktrees (ephemeral agent isolation dirs)
 .claude/worktrees/
