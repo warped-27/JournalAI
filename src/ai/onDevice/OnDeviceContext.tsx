@@ -106,8 +106,8 @@ export function OnDeviceProvider({ children }: { children: ReactNode }) {
       downloadHandleRef.current = null;
     }
 
-    // Unload if a model is currently live
-    if (status === 'loaded' || status === 'loading') {
+    // Unload if a model is currently live or in a broken state
+    if (status === 'loaded' || status === 'loading' || status === 'error') {
       await releaseLlamaRnProvider().catch(() => {});
     }
 
@@ -186,7 +186,7 @@ export function OnDeviceProvider({ children }: { children: ReactNode }) {
   const deleteLocalModel = useCallback(async () => {
     if (!isNativePlatform()) return;
     const m = findModelById(selectedModelId) ?? DEFAULT_ON_DEVICE_MODEL;
-    if (status === 'loaded') await releaseLlamaRnProvider();
+    if (status === 'loaded' || status === 'loading') await releaseLlamaRnProvider();
     setProvider(null);
     await deleteModel(m);
     setDownloadedModelIds((prev) => { const s = new Set(prev); s.delete(m.id); return s; });
@@ -196,10 +196,11 @@ export function OnDeviceProvider({ children }: { children: ReactNode }) {
   // ── Delete any model by id (for cleaning up non-selected downloads) ───────────
   const deleteModelById = useCallback(async (id: string) => {
     if (!isNativePlatform()) return;
-    const m = findModelById(id) ?? DEFAULT_ON_DEVICE_MODEL;
+    const m = findModelById(id);
+    if (!m) return;
     // If deleting the currently loaded/selected model, unload it first
     if (id === selectedModelId) {
-      if (status === 'loaded') await releaseLlamaRnProvider();
+      if (status === 'loaded' || status === 'loading') await releaseLlamaRnProvider();
       setProvider(null);
       setStatus('not-downloaded');
     }

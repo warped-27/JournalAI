@@ -61,17 +61,15 @@ fn verify_pin(headers: &HeaderMap, expected: &str) -> bool {
 }
 
 fn check_pin_with_rate_limit(state: &SyncState, headers: &HeaderMap) -> Result<(), StatusCode> {
-    {
-        let fails = state.failed_attempts.lock().unwrap();
-        if *fails >= MAX_FAILED_PINS {
-            return Err(StatusCode::TOO_MANY_REQUESTS);
-        }
+    let mut fails = state.failed_attempts.lock().unwrap();
+    if *fails >= MAX_FAILED_PINS {
+        return Err(StatusCode::TOO_MANY_REQUESTS);
     }
     if verify_pin(headers, &state.pin) {
-        *state.failed_attempts.lock().unwrap() = 0;
+        *fails = 0;
         Ok(())
     } else {
-        *state.failed_attempts.lock().unwrap() += 1;
+        *fails += 1;
         Err(StatusCode::UNAUTHORIZED)
     }
 }

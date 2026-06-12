@@ -21,11 +21,10 @@ const REDIRECT_CODES = new Set([301, 302, 303, 307, 308]);
 export function makeOpenAiCompatProvider(config: OpenAiCompatConfig): AiProvider {
   assertSafeUrl(config.baseUrl);
   const base = config.baseUrl.replace(/\/+$/, '');
-  const privacyLevel = config.baseUrl.startsWith('https://') ? 'cloud' : 'local';
   return {
     id:           config.id,
     displayName:  config.displayName ?? config.id,
-    privacyLevel,
+    privacyLevel: 'local' as const,
     async complete(prompt: string): Promise<string> {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);

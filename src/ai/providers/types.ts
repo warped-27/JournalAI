@@ -1,4 +1,4 @@
-export type PrivacyLevel = 'on-device' | 'local' | 'cloud';
+export type PrivacyLevel = 'on-device' | 'local';
 
 export interface AiProvider {
   readonly id:           string;

@@ -6,7 +6,7 @@ function makeProvider(response: string | Error): AiProvider {
   return {
     id:           'test',
     displayName:  'Test',
-    privacyLevel: 'cloud',
+    privacyLevel: 'local',
     complete: jest.fn(async () => {
       if (response instanceof Error) throw response;
       return response;
