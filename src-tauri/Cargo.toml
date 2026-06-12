@@ -27,3 +27,9 @@ rand                = "0.8"
 
 [features]
 custom-protocol = ["tauri/custom-protocol"]
+
+[patch.crates-io]
+# time 0.3.34 has E0282 (type annotation) on Windows MSVC Rust 1.94.1.
+# One-line fix: let items: Box<[_]> in format_description/parse/mod.rs:83.
+# time >= 0.3.35 triggers E0119 (ModifierValue coherence) so must stay on 0.3.34.
+time = { path = "patches/time" }
