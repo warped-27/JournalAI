@@ -6,6 +6,7 @@ import { useVault } from '../src/crypto/VaultContext';
 import { useAi } from '../src/ai/AiContext';
 import { useOnDevice } from '../src/ai/onDevice/OnDeviceContext';
 import { useWhisper } from '../src/ai/whisper/WhisperContext';
+import { AVAILABLE_MODELS } from '../src/ai/onDevice/modelInfo';
 import { testOpenAiCompatConnection } from '../src/ai/providers/openAiCompatProvider';
 import { useSync } from '../src/sync/SyncContext';
 import { useNotes } from '../src/notes/NotesContext';
@@ -353,8 +354,8 @@ export default function SettingsScreen() {
         {/* ─── ON-DEVICE ─── */}
         <T variant="heading" style={[styles.section, styles.syncHeading]}>ON-DEVICE AI</T>
         <T variant="muted" style={styles.hint}>
-          Run Gemma 3 4B entirely on this device. No internet required after
-          download. Highest privacy — notes never leave your hardware.
+          Choose a GGUF model. Downloaded once, stored locally — no internet required
+          after download. Notes never leave your hardware.
         </T>
 
         {onDevice.status === 'unavailable' ? (
@@ -363,13 +364,53 @@ export default function SettingsScreen() {
           </T>
         ) : (
           <>
-            <T variant="label" style={styles.label}>
-              {onDevice.modelInfo.name}
-            </T>
-            <T variant="muted" style={styles.hint}>
-              {(onDevice.modelInfo.sizeBytes / 1e9).toFixed(1)} GB · Q4_K_M quantisation
-            </T>
+            {/* ── Model picker ── */}
+            {AVAILABLE_MODELS.map((m) => {
+              const isSelected   = m.id === onDevice.selectedModelId;
+              const isDownloaded = onDevice.downloadedModelIds.has(m.id);
+              const busy         = onDevice.status === 'downloading' || onDevice.status === 'loading';
+              return (
+                <Pressable
+                  key={m.id}
+                  style={[styles.modelRow, isSelected && styles.modelRowActive]}
+                  onPress={() => { if (!busy) void onDevice.selectModel(m.id); }}
+                  disabled={busy}
+                  testID={`model-select-${m.id}`}
+                >
+                  <View style={[styles.radio, isSelected && styles.radioActive]} />
+                  <View style={styles.modelRowContent}>
+                    <View style={styles.modelRowMeta}>
+                      <T variant={isSelected ? 'label' : 'body'} style={styles.modelRowName}>
+                        {m.name}
+                      </T>
+                      <View style={styles.modelRowRight}>
+                        {isDownloaded && (
+                          <T variant="kicker" style={styles.modelRowDot}>●</T>
+                        )}
+                        <T variant="caption" style={styles.modelRowSize}>
+                          {(m.sizeBytes / 1e9).toFixed(1)} GB
+                        </T>
+                        {isDownloaded && !isSelected && (
+                          <Pressable
+                            onPress={() => void onDevice.deleteModelById(m.id)}
+                            disabled={busy}
+                            style={styles.modelRowDelete}
+                            testID={`model-delete-${m.id}`}
+                          >
+                            <T variant="caption" style={styles.modelRowDeleteIcon}>✕</T>
+                          </Pressable>
+                        )}
+                      </View>
+                    </View>
+                    {m.description ? (
+                      <T variant="caption" style={styles.modelRowDesc}>{m.description}</T>
+                    ) : null}
+                  </View>
+                </Pressable>
+              );
+            })}
 
+            {/* ── Status + actions for the selected model ── */}
             <T
               variant={onDevice.status === 'loaded' ? 'label' : 'muted'}
               style={[styles.status, styles.sectionGap]}
@@ -932,7 +973,16 @@ const styles = StyleSheet.create({
     marginBottom:   Spacing.xs,
     gap:            Spacing.sm,
   },
-  modelRowActive: { borderColor: Colors.green, backgroundColor: Colors.greenBg },
+  modelRowActive:   { borderColor: Colors.green, backgroundColor: Colors.greenBg },
+  modelRowContent:    { flex: 1 },
+  modelRowMeta:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  modelRowName:       { flex: 1 },
+  modelRowRight:      { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  modelRowDot:        { color: Colors.green, fontSize: 8 },
+  modelRowSize:       { color: Colors.textMuted },
+  modelRowDelete:     { paddingHorizontal: 4 },
+  modelRowDeleteIcon: { color: Colors.error },
+  modelRowDesc:       { color: Colors.textMuted, marginTop: 2 },
   toggleRow: {
     flexDirection:  'row',
     alignItems:     'center',
