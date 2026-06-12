@@ -84,7 +84,6 @@ pub fn run() {
         .manage(LanSyncManager::new())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_tray::init())
         .setup(|app| {
             // System tray: left-click or "Open" to show, "Quit" to exit
             let show = MenuItem::with_id(app, "show", "Open NERD_JOURNAL_", true, None::<&str>)?;
