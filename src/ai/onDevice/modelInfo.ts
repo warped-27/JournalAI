@@ -7,13 +7,22 @@ export interface ModelInfo {
   description?: string;
 }
 
-// Curated GGUF models — all quantised by bartowski, verified on HuggingFace.
-// Add Gemma 4 or newer variants here once stable GGUF builds appear.
+// Curated GGUF models — all quantised by bartowski, sourced from HuggingFace.
+// sizeBytes for Gemma 4 E2B is estimated (~3.7 GB) from sibling quantisations;
+// update once the Q4_K_M file listing is confirmed.
 export const AVAILABLE_MODELS: ModelInfo[] = [
+  {
+    id:          'gemma-4-e2b-it-q4km',
+    name:        'Gemma 4 E2B ✦',
+    description: 'Google · Newest · MoE architecture — better quality per active param · ~3.7 GB',
+    url:         'https://huggingface.co/bartowski/google_gemma-4-E2B-it-GGUF/resolve/main/google_gemma-4-E2B-it-Q4_K_M.gguf',
+    sizeBytes:   3_700_000_000,
+    filename:    'google_gemma-4-E2B-it-Q4_K_M.gguf',
+  },
   {
     id:          'gemma-3-4b-it-q4km',
     name:        'Gemma 3 4B',
-    description: 'Google · Best overall quality · Solid multilingual support',
+    description: 'Google · Proven default · Best overall quality · Solid multilingual support',
     url:         'https://huggingface.co/bartowski/gemma-3-4b-it-GGUF/resolve/main/gemma-3-4b-it-Q4_K_M.gguf',
     sizeBytes:   2_530_000_000,
     filename:    'gemma-3-4b-it-Q4_K_M.gguf',
